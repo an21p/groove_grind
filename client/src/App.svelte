@@ -23,7 +23,8 @@
 
 </script>
 
-<input value={searchTerm} />
+<input bind:value={searchTerm} />
 <button on:click={search}>Search</button>
 {initialised}
+{searchTerm}
 <div>{result}</div>
