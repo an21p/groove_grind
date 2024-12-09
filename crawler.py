@@ -1,10 +1,12 @@
 from datetime import date, timedelta
 from typing import Tuple, List
-from json import loads, dumps
+from json import loads, dumps, JSONEncoder
 from pprint import pprint
 from requests_html import HTMLSession
 from requests import get
 from re import compile
+
+# from toolz import groupby
 
 def check(status):
     if status == 404:
@@ -15,7 +17,8 @@ def flatten(xss):
 
 class Track:
     def __init__(self, data):
-        self.data = data
+        # self.data = data
+        self.id = data['id']
         self.artists = [Artist(a) for a in data['artists']]
         self.remixers = [Artist(a) for a in data['remixers']]
         self.label = Label(data['release']['label'])
@@ -30,27 +33,21 @@ class Track:
         self.genre = data['genre']
     def __repr__(self):
         return f"{self.name} by {[a.name for a in self.artists]} remixed by {[a.name for a in self.remixers]} released on {self.label.name}"
-    def toJSON(self):
-        return dumps(
-            {'name': self.name, 'id': self.id, 'slug': self.slug},
-            default=lambda o: o.__dict__, 
-            skipkeys=True,
-            sort_keys=True,
-            indent=4)
-    # def __hash__(self):
-    #     return hash((self.name, self.artists, self.label, self.bpm))
-    # def __eq__(self, other):
-    #     if isinstance(other, Track):
-    #         return self.name == other.name \
-    #             and self.bpm == other.bpm \
-    #             and self.artists == other.artists \
-    #             and self.release_date == other.release_date 
-    #     return False
+    def to_dict(self):
+        return {
+            'name': self.name, 
+            'slug': self.slug, 
+            'artists': [a.to_dict() for a in self.artists],
+            'remixers': [a.to_dict() for a in self.remixers],
+            'label': self.label.to_dict(),
+            'image': self.image,
+            'sample': self.sample,
+            }
 
 class Artist:
     def __init__(self, data):
+        # self.data = data
         self.top10 = []
-        self.data = data
         self.bio = data['bio'] if 'bio' in data else ""
         self.id = data['id'] if 'id' in data else data['artist_id']
         self.image = data['image']['uri'] if 'image' in data else data['artist_image_uri']
@@ -60,29 +57,23 @@ class Artist:
         return f"{self.name} [{self.slug}/{self.id}]"    
     def enrich(self, beatport, per_page:int=150, all:bool=True):
         self.tracks = beatport.get_tracks_by_artist(slug=self.slug, id=self.id, per_page=per_page, all=all)
-        a, self.top10 = beatport.get_artist(slug=self.slug,id=self.id)
-        self.bio = a.bio
-        self.slug = a.slug
-    def toJSON(self):
-        return dumps(
-            {'name': self.name, 'id': self.id, 'slug': self.slug},
-            default=lambda o: o.__dict__, 
-            skipkeys=True,
-            sort_keys=True,
-            indent=4)
-    # def __hash__(self):
-    #     return hash((self.name, self.id, self.slug))
-    # def __eq__(self, other):
-    #     if isinstance(other, Artist):
-    #         return self.name == other.name \
-    #             and self.id == other.id \
-    #             and self.slug == other.slug 
-    #     return False
+        if (len(self.top10) == 0):
+            a, self.top10 = beatport.get_artist(slug=self.slug,id=self.id)
+            self.bio = a.bio
+            self.slug = a.slug
+    def to_dict(self):
+        return {
+            'name': self.name, 
+            'bio': self.bio, 
+            'id': self.id, 
+            'slug': self.slug,
+            'image': self.image
+            }
         
 class Label:
     def __init__(self, data):
+        # self.data = data
         self.top10 = []
-        self.data = data
         self.bio = data['bio'] if 'bio' in data else ""
         self.id = data['id'] if 'id' in data else data['label_id']
         self.image = data['image']['uri'] if 'image' in data else data['label_image_uri']
@@ -92,24 +83,24 @@ class Label:
         return f"{self.name} [{self.slug}/{self.id}]"
     def enrich(self, beatport, per_page:int=150, all:bool=True):
         self.tracks = beatport.get_tracks_by_label(slug=self.slug, id=self.id, per_page=per_page, all=all)
-        l, self.top10 = beatport.get_label(slug=self.slug,id=self.id)
-        self.bio = l.bio
-        self.slug = l.slug
-    def toJSON(self):
-        return dumps(
-            {'name': self.name, 'id': self.id, 'slug': self.slug},
-            default=lambda o: o.__dict__, 
-            skipkeys=True,
-            sort_keys=True,
-            indent=4)
-    # def __hash__(self):
-    #     return hash((self.name, self.id, self.slug))
-    # def __eq__(self, other):
-    #     if isinstance(other, Label):
-    #         return self.name == other.name \
-    #             and self.id == other.id \
-    #             and self.slug == other.slug 
-    #     return False
+        if (len(self.top10) == 0):
+            l, self.top10 = beatport.get_label(slug=self.slug,id=self.id)
+            self.bio = l.bio
+            self.slug = l.slug
+    def to_dict(self):
+        return {
+            'name': self.name, 
+            'bio': self.bio, 
+            'id': self.id, 
+            'slug': self.slug,
+            'image': self.image
+            }
+
+class DefaultJSONEncoder(JSONEncoder):
+    def default(self, obj: Track|Artist|Label|List[Track]|List[Artist]|List[Label]):
+        if isinstance(obj, list):
+            return [o.to_dict() for o in obj]
+        return obj.to_dict()
 
 class Beatport:
     def __init__(self, key=None):
@@ -248,6 +239,11 @@ class Beatport:
         top10 = [Track(track) for track in tracks]
         main = Label(main)
         return main, top10
+
+def to_dict(obj: List[Track]|List[Artist]|List[Label]):
+    if not isinstance(obj, list):
+        raise Exception("expected a list")
+    return [o.to_dict() for o in obj]
 
 if __name__ == "__main__":
     b = Beatport()
