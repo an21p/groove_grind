@@ -7,9 +7,11 @@ html, body {
 body {
 	color: #333;
 	margin: 0;
-	padding: 8px;
+	padding: 20px;
 	box-sizing: border-box;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+	background-color: #f4f4f9;
+	line-height: 1.6;
 }
 
 a {
@@ -60,3 +62,128 @@ button:active {
 button:focus {
 	border-color: #666;
 }
+
+
+.details {
+	margin: 20px auto;
+	max-width: 800px;
+  }
+  
+  /* Summary Style */
+  details summary {
+	font-size: 1.4rem;
+	font-weight: bold;
+	color: #2c3e50;
+	cursor: pointer;
+	margin-bottom: 10px;
+  }
+  
+  details[open] summary {
+	color: #2980b9;
+  }
+  
+  /* Flex Layout for Tracks */
+  .tracks {
+	display: flex;
+	flex-wrap: wrap; /* Allow cards to wrap on smaller screens */
+	gap: 10px;
+	justify-content: space-between;
+  }
+  
+  /* Individual Track Card */
+  .track {
+	background-color: #fff;
+	border-radius: 10px;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+	width: 100%;
+	max-width: 320px;
+	padding: 20px;
+	margin-bottom: 10px;
+	place-items: center; Centers both horizontally and vertically
+	/* transition: transform 0.3s ease, box-shadow 0.3s ease; */
+  }
+
+  .track-info {
+	display: flex;
+	flex-flow: column;
+	place-items: start;
+  }
+  
+  /* .track:hover {
+	transform: translateY(-5px); 
+	box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+  } */
+  
+  /* Track Image */
+  .track img {
+	border-radius: 8px;
+	display: block;
+	margin-bottom: 15px;
+	min-width: 100%;
+  }
+  
+  /* Track Title */
+  .track h4 {
+	font-size: 1.2rem;
+	font-weight: bold;
+	color: #2c3e50;
+	margin-bottom: 10px;
+  }
+  
+  /* Title for Artists/Remixers */
+  .title {
+	font-size: 1rem;
+	font-weight: bold;
+	color: #2980b9;
+	margin: 10px 0 5px 0;
+  }
+  
+  /* Artist/Remixer Info */
+  .track div {
+	display: flex;
+	/* align-items: center; */
+	margin-bottom: 8px;
+  }
+  
+  .track div img {
+	min-width: 48px;
+	min-height: 48px;
+	max-width: 48px;
+	max-height: 48px;
+	border-radius: 50%;
+	margin-right: 10px;
+  }
+  
+  .track div span {
+	font-size: 0.9rem;
+	color: #34495e;
+	font-weight: normal;
+  }
+  
+  /* Audio Player */
+  .track audio {
+	width: 100%;
+	margin-top: 15px;
+	border-radius: 8px;
+	outline: none;
+  }
+  
+  /* Responsive Adjustments */
+  @media (max-width: 768px) {
+	.track {
+	  max-width: 100%;
+	}
+  
+	.track h4 {
+	  font-size: 1.1rem;
+	}
+  
+	.title {
+	  font-size: 0.9rem;
+	}
+  
+	.track div span {
+	  font-size: 0.9rem;
+	}
+  }
+  
