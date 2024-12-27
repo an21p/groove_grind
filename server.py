@@ -51,8 +51,6 @@ def search(term):
 def get_artist(slug, id):
     return do_get_artist(slug, id)
 
-
-
 @handle_beatport
 def do_search(term):
     artists, labels = get_beatport().search(term)

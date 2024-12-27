@@ -1,14 +1,24 @@
-# Svelte.js + Flask
+# Groove Grid
 
-A super simple example of using Flask to serve a Svelte app and use it as a backend server.
+## API - Flask
+- Search for artists via Beatport API
+- Get all tracks of an artist
+- Get all labels an artist has released on
+- Get top 10 tracks of an artist
 
+### TODO
+- Get all tracks of a label
+- Get all artists of a label
+- Get top 10 tracks of a label
+
+## Front-end - Svelte
+- Made to facilitate the use of the API
+
+#### Svelte.js + Flask
 Run the following for development:
 
 - `python server.py` to start the Flask server.
 - `cd client; npm install; npm run autobuild` to automatically build and reload the Svelte frontend when it's changed.
-
-This example just queries the Flask server for a random number.
-
 
 - `python -m venv .venv`
 - `source .venv/bin/activate`
