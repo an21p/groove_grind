@@ -1,3 +1,13 @@
+/*
+#12130F
+#5B9279
+#8FCB9B
+#EAE6E5
+#8f8073
+*/
+
+
+
 html, body {
 	position: relative;
 	width: 100%;
@@ -5,12 +15,12 @@ html, body {
 }
 
 body {
-	color: #333;
+	color: #12130F;
 	margin: 0;
 	padding: 20px;
 	box-sizing: border-box;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-	background-color: #f4f4f9;
+	background-color: #EAE6E5;
 	line-height: 1.6;
 }
 
@@ -30,6 +40,11 @@ a:visited {
 label {
 	display: block;
 }
+/* 
+img {
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+	margin-right: 0.5rem;
+} */
 
 input, button, select, textarea {
 	font-family: inherit;
@@ -79,15 +94,110 @@ button:focus {
   }
   
   details[open] summary {
-	color: #2980b9;
+	color: #5B9279;
+  }
+
+  h4 {
+	margin: 0;
+  }
+
+  summary {
+	margin-top: 1rem;
+  }
+
+  
+  .artists {
+	display: flex;
+	flex-wrap: wrap; /* Allow cards to wrap on smaller screens */
+	gap: 10px;
+	justify-content: center;
+  }
+
+  .artist-name {
+	font-size: 1rem;
+    text-align: center;
+  }
+
+  .artist-image-main {
+	width: 250px;
+	border-radius: 50%;
+  }
+
+  .artist-main {
+	background-color: #ffffff; /* White background */
+	padding: 1rem;            /* Sensible padding around content */
+	margin-bottom: 1rem;  
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+	display: flex;
   }
   
+  .artist-small {
+	display: flex;
+	/* align-items: center; */
+	/* margin-bottom: 8px; */
+  }
+
+  .artist-main img {
+	width: 4rem;
+	border-radius: 0;
+	margin-right: 10px;
+	align-items: center;      /* Vertically center the content */
+  }
+
+  .artist-item {
+	background-color: #ffffff; /* White background */
+	padding: 0.5rem;            /* Sensible padding around content */
+	margin-bottom: 0.2rem;      /* Space between each .label item (if it’s in a list) */
+	border-radius: 6px;       /* Slightly rounded corners (optional) */
+	display: flex;            /* So items line up nicely */
+	flex-direction: column;
+	align-items: center;      /* Vertically center the content */
+	gap: 0.2rem;              /* Space between elements inside .label */
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+	transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+	}
+
+	.artist-item:hover {
+		transform: translateY(-5px); 
+		box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+	}
+  
+  .artist-small img {
+	min-width: 2rem;
+	min-height: 2rem;
+	max-width: 2rem;
+	max-height: 2rem;
+	border-radius: 50%;
+	margin-right: 10px;
+  }
+  
+
+  .label {
+	background-color: #ffffff; /* White background */
+	padding: 1rem;            /* Sensible padding around content */
+	margin-bottom: 1rem;      /* Space between each .label item (if it’s in a list) */
+	border-radius: 6px;       /* Slightly rounded corners (optional) */
+	display: flex;            /* So items line up nicely */
+	align-items: center;      /* Vertically center the content */
+	gap: 0.5rem;              /* Space between elements inside .label */
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+	}
+
+.label img {
+  display: block; /* Removes any default bottom spacing for images */
+}
+
+.label b {
+  font-weight: 600; /* Make the label name stand out */
+}
+
   /* Flex Layout for Tracks */
   .tracks {
 	display: flex;
 	flex-wrap: wrap; /* Allow cards to wrap on smaller screens */
 	gap: 10px;
-	justify-content: space-between;
+	justify-content: center;
   }
   
   /* Individual Track Card */
@@ -95,19 +205,23 @@ button:focus {
 	background-color: #fff;
 	border-radius: 10px;
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-	width: 100%;
+	width: 10rem;
 	max-width: 320px;
 	padding: 20px;
 	margin-bottom: 10px;
-	place-items: center; Centers both horizontally and vertically
+	place-items: center; // Centers both horizontally and vertically
 	/* transition: transform 0.3s ease, box-shadow 0.3s ease; */
-  }
+}
 
   .track-info {
 	display: flex;
 	flex-flow: column;
 	place-items: start;
   }
+
+	.track-title {
+		min-height: 6rem;
+	}
   
   /* .track:hover {
 	transform: translateY(-5px); 
@@ -115,7 +229,8 @@ button:focus {
   } */
   
   /* Track Image */
-  .track img {
+  .track-image {
+	width: 128px;
 	border-radius: 8px;
 	display: block;
 	margin-bottom: 15px;
@@ -142,18 +257,9 @@ button:focus {
   .track div {
 	display: flex;
 	/* align-items: center; */
-	margin-bottom: 8px;
+	/* margin-bottom: 8px; */
   }
-  
-  .track div img {
-	min-width: 48px;
-	min-height: 48px;
-	max-width: 48px;
-	max-height: 48px;
-	border-radius: 50%;
-	margin-right: 10px;
-  }
-  
+
   .track div span {
 	font-size: 0.9rem;
 	color: #34495e;
@@ -187,3 +293,82 @@ button:focus {
 	}
   }
   
+
+
+
+/* You can put this in a <style> block in Svelte, or in a separate CSS file */
+
+/* Wrap the input and button in a flex container for neat alignment */
+.search-group {
+	display: inline-flex;
+	gap: 0.5rem; /* Space between input and button */
+  }
+  
+  /* Style the text input */
+  .search-input {
+	padding: 0.5rem 0.75rem;
+	border: 1px solid #8f8073;
+	border-radius: 6px;  /* Rounded corners */
+	font-size: 1rem;
+	outline: none;       /* Remove default focus outline */
+	transition: border-color 0.2s ease;
+  }
+  
+  .search-input:focus {
+	border-color: #5B9279;  /* Slightly darker border on focus */
+  }
+  
+  /* Style the button */
+  .search-button {
+	padding: 0.5rem 0.75rem;
+	background-color: #5B9279; 
+	color: #ffffff;
+	font-size: 1rem;
+	border: none;
+	border-radius: 4px; /* Slightly rounded corners */
+	cursor: pointer;
+	transition: background-color 0.3s ease;
+  }
+  
+  .search-button:hover {
+	background-color: #8FCB9B;  /* Darker on hover */
+  }
+  
+
+
+
+
+  /* Make the overlay cover the entire screen and block interaction */
+#loading-overlay {
+	position: fixed;       /* Stay fixed in the viewport */
+	top: 0;
+	left: 0;
+	width: 100vw;          /* Cover full width */
+	height: 100vh;         /* Cover full height */
+	background-color: rgba(255, 255, 255, 0.5); /* Semi-transparent white overlay */
+	display: flex;         /* Center the spinner */
+	justify-content: center;
+	align-items: center;
+	z-index: 9999;         /* Large z-index to ensure it sits above everything */
+	pointer-events: all;   /* Overlay captures all pointer events */
+  }
+  
+  /* Hide the overlay by default or when loading is complete */
+  #loading-overlay.hidden {
+	display: none;
+  }
+  
+  .spinner {
+	width: 3rem;                      /* Spinner width */
+	height: 3rem;                     /* Spinner height */
+	margin: 0 auto;                   /* Center it horizontally */
+	border: 0.5rem solid #12130F;        /* Background of the spinner track */
+	border-top: 0.5rem solid #8FCB9B;    /* The part that animates and gives it color */
+	border-radius: 50%;               /* Make it a circle */
+	animation: spin 1s linear infinite; /* The spinning animation */
+  }
+  
+  @keyframes spin {
+	0%   { transform: rotate(0deg);   }
+	100% { transform: rotate(360deg); }
+  }

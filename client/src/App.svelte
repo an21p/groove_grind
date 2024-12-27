@@ -55,6 +55,12 @@
     isOpenArtistTop10 = false;
   }
 
+  function handleKeydown(event) {
+    if (event.key === 'Enter') {
+      search();
+    }
+  }
+
   function search() {
     loading = true;
     toggleDetails(Details.Main)
@@ -99,12 +105,24 @@
 
 </script>
 
-<input bind:value={searchTerm} placeholder="Enter an artist or label"/>
-<button on:click={search}>Search</button>
+<div class="search-group">
+  <input 
+    bind:value={searchTerm} 
+    placeholder="Enter an artist or label" 
+    class="search-input" 
+    on:keydown={handleKeydown}
+  />
+  <button on:click={search} class="search-button">
+    Search
+  </button>
+</div>
 
 {#if loading}
-  Loading......
-{/if}
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <!-- <div>Loading...</div> -->
+
+</div>{/if}
 
   {#if !!artists}
   <details open={isOpenArtistsDetail} 
@@ -113,24 +131,29 @@
         toggleDetails(Details.Main)
       }}>
     <summary><b>Artists</b></summary>
-    {#each artists as artist}
-      <div on:click={() => get_labels_by_date_for_artist(artist.slug, artist.id)}>
-        <h4>{artist.name}</h4>
-        <img width="128" src="{artist.image}" alt="{artist.slug}-img"> 
-        <br>
+    <div class="artists">
+      {#each artists as artist}
+      <div class="artist-item" on:click={() => get_labels_by_date_for_artist(artist.slug, artist.id)}>
+        <div class="artist-name">{artist.name}</div>
+        <img class="track-image" src="{artist.image}" alt="{artist.slug}-img"> 
       </div>
-    {/each}
+      {/each}
+    </div>
   </details>
   {/if}
 
 
   {#if !!artist}
-  <h1>Artist</h1>
   <div>
-    <h4>{artist.name}</h4>
-    <img width="256" src="{artist.image}" alt="{artist.slug}-img"> 
-    {#if !!artist.bio} <br> <span>{artist.bio}</span> {/if}
     <hr>
+    <!-- <h4>{artist.name}</h4>
+    <img width="256" src="{artist.image}" alt="{artist.slug}-img"> 
+     -->
+     <div class="artist-main">
+      <div><img width="48" src="{artist.image}" alt="{artist.slug}-img"> </div>
+      <div>{artist.name}</div>
+    </div>
+    {#if !!artist.bio} <br> <span>{artist.bio}</span> {/if}
   </div>
 
   <details open={isOpenArtistLabelByDate} 
@@ -139,14 +162,16 @@
       toggleDetails(Details.ArtistLabels)
     }}>
     <summary><b>Labels By Date</b></summary>
-    {#each artistLabelByDate as labelItem}
+    <div class="labels">
+      {#each artistLabelByDate as labelItem}
       <!-- <div on:click={() => get_labels(artist.slug, artist.id)}> -->
-      <div>  
+      <div class="label">  
         <img width="48" src="{labelItem.label.image}" alt="{labelItem.label.slug}-img">
         <b>{labelItem.label.name}</b>
-        <div>First Released on {labelItem.label.name} on {labelItem.date}</div>
+        <div>First Released on <b>{labelItem.date}</b></div>
       </div>
     {/each}
+    </div>
   </details>
 
   <details class="detail" id='artist-top-10' open={isOpenArtistTop10} 
@@ -155,18 +180,21 @@
         toggleDetails(Details.ArtistTop10)
       }}>
     <summary><b>Top 10 Tracks</b></summary>
-    <div class="tracks flex">
+    <div class="tracks">
 
     {#each artistTop10 as track}
     <!-- <div on:click={() => get_labels(artist.slug, artist.id)}> -->
     <div class="track">  
-        <img width="128" src="{track.image}" alt="{track.slug}-img"> 
+        <img class="track-image" src="{track.image}" alt="{track.slug}-img"> 
         <audio width="320" height="240" src="{track.sample}" controls> </audio>
         <div class="track-info">
-          <h4>{track.name}</h4>
+          <div class="track-title">
+            <h4>{track.name}</h4>
+          </div>
+          <hr>
           <div class="title">Artists</div>
           {#each track.artists as artist}
-          <div>
+          <div class="artist-small">
             <div><img width="48" src="{artist.image}" alt="{artist.slug}-img"> </div>
             <div>{artist.name}</div>
           </div>
@@ -174,7 +202,7 @@
           {#if track.remixers.length > 0}
           <div class="title">Remixed By</div>
             {#each track.remixers as artist}
-            <div>
+            <div class="artist-small">
               <div><img width="48" src="{artist.image}" alt="{artist.slug}-img"> </div>
               <div>{artist.name}</div>
             </div>
@@ -194,22 +222,25 @@
   <summary><b>All Tracks By Date</b></summary>
   {#each artistTracksByLabel as tracksByLabel}
     <!-- <div on:click={() => get_labels(artist.slug, artist.id)}> -->
-    <div style="background-color: #efefef;">  
-      <h4>{tracksByLabel.label.name}</h4>
-      <img width="128" src="{tracksByLabel.label.image}" alt="{tracksByLabel.label.slug}-img"> 
+    <div class="label">  
+      <img width="48" src="{tracksByLabel.label.image}" alt="{tracksByLabel.label.slug}-img">
+      <b>{tracksByLabel.label.name}</b>
     </div>
 
     <div class="tracks flex">
       {#each tracksByLabel.tracks as track}
       <!-- <div on:click={() => get_labels(artist.slug, artist.id)}> -->
       <div class="track">  
-          <img width="128" src="{track.image}" alt="{track.slug}-img"> 
+          <img class="track-image" src="{track.image}" alt="{track.slug}-img"> 
           <audio width="320" height="240" src="{track.sample}" controls> </audio>
           <div class="track-info">
-            <h4>{track.name}</h4>
+            <div class="track-title">
+              <h4>{track.name}</h4>
+            </div>
+            <hr>
             <div class="title">Artists</div>
             {#each track.artists as artist}
-            <div>
+            <div class="artist-small">
               <div><img width="48" src="{artist.image}" alt="{artist.slug}-img"> </div>
               <div>{artist.name}</div>
             </div>
@@ -217,7 +248,7 @@
             {#if track.remixers.length > 0}
             <div class="title">Remixed By</div>
               {#each track.remixers as artist}
-              <div>
+              <div class="artist-small">
                 <div><img width="48" src="{artist.image}" alt="{artist.slug}-img"> </div>
                 <div>{artist.name}</div>
               </div>
