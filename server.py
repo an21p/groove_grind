@@ -13,11 +13,11 @@ def handle_beatport(func):
         session['beatport'] = session.get('beatport', Beatport().get_key())
         session['expiry'] = session.get('expiry', datetime.now(timezone.utc) + timedelta(hours=12))
         if datetime.now(timezone.utc) > session['expiry']:
-            print('-----> expired:')
+            app.logger.info('-----> expired')
             session['beatport'] = Beatport().get_key()
             session['expiry'] =  datetime.now() + timedelta(seconds=1)
 
-        print(['-----> beatport key,expiry:', session['beatport'], session['expiry']])
+        app.logger.info('-----> beatport key %s ,expiry %s',  session['beatport'], session['expiry'])
         return func(*args, **kwargs)
     return handler
 

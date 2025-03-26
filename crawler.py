@@ -125,12 +125,19 @@ class Beatport:
     def unlock(self):
         print('unlocking')
         uri = 'https://www.beatport.com'
-        pattern = 'src\=\"\/_next\/static\/([a-zA-Z0-9]+)\/_buildManifest\.js'
+        pattern = 'src\=\"\/_next\/static\/(.+?)\/_buildManifest\.js'
         session = HTMLSession()
         r = session.get(uri)
         compiled = compile(pattern)
         ms = compiled.search(r.text)
+        containsKey = ms.group(1).strip()
+        containsKey = containsKey[-25:]
+        # second pass
+        pattern = '.*\/(.+)'
+        compiled = compile(pattern)
+        ms = compiled.search(containsKey)
         key = ms.group(1).strip()
+        print('k:', containsKey, key)
         return key
     def search(self, q:str='darude') -> Tuple[List[Artist], List[Label]]:
         headers = self.__headers
