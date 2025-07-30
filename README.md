@@ -48,7 +48,7 @@ az webapp create --resource-group $RESOURCE_GROUP \
     --deployment-local-git
 
 az account show --query id --output tsv    # to find id
-az ad sp create-for-rbac --name "flask-deploy-gh" --role contributor \
+az ad sp create-for-rbac --name "groove-grind" --role contributor \
     --scopes /subscriptions/<your-subscription-id>/resourceGroups/groove-grind \
     --sdk-auth
 ```
