@@ -54,6 +54,9 @@ az ad sp create-for-rbac --name "groove-grind" --role contributor \
     --scopes /subscriptions/<your-subscription-id>/resourceGroups/groove-grind \
     --sdk-auth
 
-
 az webapp log tail --name $APP_NAME --resource-group $RESOURCE_GROUP
+
+az webapp config appsettings set --resource-group $RESOURCE_GROUP \
+  --name $APP_NAME \
+  --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
 ```
