@@ -47,8 +47,13 @@ az webapp create --resource-group $RESOURCE_GROUP \
     --runtime "PYTHON|3.11" \
     --deployment-local-git
 
+az webapp config set --resource-group $RESOURCE_GROUP --name $APP_NAME --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
+
 az account show --query id --output tsv    # to find id
 az ad sp create-for-rbac --name "groove-grind" --role contributor \
     --scopes /subscriptions/<your-subscription-id>/resourceGroups/groove-grind \
     --sdk-auth
+
+
+az webapp log tail --name $APP_NAME --resource-group $RESOURCE_GROUP
 ```
