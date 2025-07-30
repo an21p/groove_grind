@@ -186,7 +186,7 @@
     <!-- <div on:click={() => get_labels(artist.slug, artist.id)}> -->
     <div class="track">  
         <img class="track-image" src="{track.image}" alt="{track.slug}-img"> 
-        <audio width="320" height="240" src="{track.sample}" controls> </audio>
+        <audio width="640" height="240" src="{track.sample}" controls> </audio>
         <div class="track-info">
           <div class="track-title">
             <h4>{track.name}</h4>
@@ -232,7 +232,7 @@
       <!-- <div on:click={() => get_labels(artist.slug, artist.id)}> -->
       <div class="track">  
           <img class="track-image" src="{track.image}" alt="{track.slug}-img"> 
-          <audio width="320" height="240" src="{track.sample}" controls> </audio>
+          <audio width="640" height="240" src="{track.sample}" controls> </audio>
           <div class="track-info">
             <div class="track-title">
               <h4>{track.name}</h4>

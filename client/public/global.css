@@ -82,69 +82,69 @@ button:focus {
 .details {
 	margin: 20px auto;
 	max-width: 800px;
-  }
-  
-  /* Summary Style */
-  details summary {
+}
+
+/* Summary Style */
+details summary {
 	font-size: 1.4rem;
 	font-weight: bold;
 	color: #2c3e50;
 	cursor: pointer;
 	margin-bottom: 10px;
-  }
-  
-  details[open] summary {
+}
+
+details[open] summary {
 	color: #5B9279;
-  }
+}
 
-  h4 {
+h4 {
 	margin: 0;
-  }
+}
 
-  summary {
+summary {
 	margin-top: 1rem;
-  }
+}
 
-  
-  .artists {
+
+.artists {
 	display: flex;
 	flex-wrap: wrap; /* Allow cards to wrap on smaller screens */
 	gap: 10px;
 	justify-content: center;
-  }
+}
 
-  .artist-name {
+.artist-name {
 	font-size: 1rem;
-    text-align: center;
-  }
+	text-align: center;
+}
 
-  .artist-image-main {
+.artist-image-main {
 	width: 250px;
 	border-radius: 50%;
-  }
+}
 
-  .artist-main {
+.artist-main {
 	background-color: #ffffff; /* White background */
 	padding: 1rem;            /* Sensible padding around content */
 	margin-bottom: 1rem;  
 	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
 	display: flex;
-  }
-  
-  .artist-small {
+}
+
+.artist-small {
 	display: flex;
 	/* align-items: center; */
 	/* margin-bottom: 8px; */
-  }
+}
 
-  .artist-main img {
+.artist-main img {
 	width: 4rem;
 	border-radius: 0;
 	margin-right: 10px;
 	align-items: center;      /* Vertically center the content */
-  }
+}
 
-  .artist-item {
+.artist-item {
 	background-color: #ffffff; /* White background */
 	padding: 0.5rem;            /* Sensible padding around content */
 	margin-bottom: 0.2rem;      /* Space between each .label item (if it’s in a list) */
@@ -155,25 +155,24 @@ button:focus {
 	gap: 0.2rem;              /* Space between elements inside .label */
 	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
 	transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
 
-	}
+.artist-item:hover {
+	transform: translateY(-5px); 
+	box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+}
 
-	.artist-item:hover {
-		transform: translateY(-5px); 
-		box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-	}
-  
-  .artist-small img {
+.artist-small img {
 	min-width: 2rem;
 	min-height: 2rem;
 	max-width: 2rem;
 	max-height: 2rem;
 	border-radius: 50%;
 	margin-right: 10px;
-  }
-  
+}
 
-  .label {
+
+.label {
 	background-color: #ffffff; /* White background */
 	padding: 1rem;            /* Sensible padding around content */
 	margin-bottom: 1rem;      /* Space between each .label item (if it’s in a list) */
@@ -182,117 +181,117 @@ button:focus {
 	align-items: center;      /* Vertically center the content */
 	gap: 0.5rem;              /* Space between elements inside .label */
 	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
-	}
+}
 
 .label img {
-  display: block; /* Removes any default bottom spacing for images */
+	display: block; /* Removes any default bottom spacing for images */
 }
 
 .label b {
-  font-weight: 600; /* Make the label name stand out */
+	font-weight: 600; /* Make the label name stand out */
 }
 
-  /* Flex Layout for Tracks */
-  .tracks {
+/* Flex Layout for Tracks */
+.tracks {
 	display: flex;
 	flex-wrap: wrap; /* Allow cards to wrap on smaller screens */
 	gap: 10px;
 	justify-content: center;
-  }
-  
-  /* Individual Track Card */
-  .track {
+}
+
+/* Individual Track Card */
+.track {
 	background-color: #fff;
 	border-radius: 10px;
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-	width: 10rem;
-	max-width: 320px;
+	width: 14rem;
+	max-width: 640px;
 	padding: 20px;
 	margin-bottom: 10px;
 	place-items: center; // Centers both horizontally and vertically
 	/* transition: transform 0.3s ease, box-shadow 0.3s ease; */
 }
 
-  .track-info {
+.track-info {
 	display: flex;
 	flex-flow: column;
 	place-items: start;
-  }
+}
 
-	.track-title {
-		min-height: 6rem;
-	}
-  
-  /* .track:hover {
-	transform: translateY(-5px); 
-	box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-  } */
-  
-  /* Track Image */
-  .track-image {
+.track-title {
+	min-height: 6rem;
+}
+
+/* .track:hover {
+transform: translateY(-5px); 
+box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+} */
+
+/* Track Image */
+.track-image {
 	width: 128px;
 	border-radius: 8px;
 	display: block;
 	margin-bottom: 15px;
 	min-width: 100%;
-  }
-  
-  /* Track Title */
-  .track h4 {
+}
+
+/* Track Title */
+.track h4 {
 	font-size: 1.2rem;
 	font-weight: bold;
 	color: #2c3e50;
 	margin-bottom: 10px;
-  }
-  
-  /* Title for Artists/Remixers */
-  .title {
+}
+
+/* Title for Artists/Remixers */
+.title {
 	font-size: 1rem;
 	font-weight: bold;
 	color: #2980b9;
 	margin: 10px 0 5px 0;
-  }
-  
-  /* Artist/Remixer Info */
-  .track div {
+}
+
+/* Artist/Remixer Info */
+.track div {
 	display: flex;
 	/* align-items: center; */
 	/* margin-bottom: 8px; */
-  }
+}
 
-  .track div span {
+.track div span {
 	font-size: 0.9rem;
 	color: #34495e;
 	font-weight: normal;
-  }
-  
-  /* Audio Player */
-  .track audio {
+}
+
+/* Audio Player */
+.track audio {
 	width: 100%;
 	margin-top: 15px;
 	border-radius: 8px;
 	outline: none;
-  }
-  
-  /* Responsive Adjustments */
-  @media (max-width: 768px) {
-	.track {
-	  max-width: 100%;
-	}
-  
-	.track h4 {
-	  font-size: 1.1rem;
-	}
-  
-	.title {
-	  font-size: 0.9rem;
-	}
-  
-	.track div span {
-	  font-size: 0.9rem;
-	}
-  }
-  
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+.track {
+	max-width: 100%;
+}
+
+.track h4 {
+	font-size: 1.1rem;
+}
+
+.title {
+	font-size: 0.9rem;
+}
+
+.track div span {
+	font-size: 0.9rem;
+}
+}
+
 
 
 
@@ -302,24 +301,24 @@ button:focus {
 .search-group {
 	display: inline-flex;
 	gap: 0.5rem; /* Space between input and button */
-  }
-  
-  /* Style the text input */
-  .search-input {
+}
+
+/* Style the text input */
+.search-input {
 	padding: 0.5rem 0.75rem;
 	border: 1px solid #8f8073;
 	border-radius: 6px;  /* Rounded corners */
 	font-size: 1rem;
 	outline: none;       /* Remove default focus outline */
 	transition: border-color 0.2s ease;
-  }
-  
-  .search-input:focus {
+}
+
+.search-input:focus {
 	border-color: #5B9279;  /* Slightly darker border on focus */
-  }
-  
-  /* Style the button */
-  .search-button {
+}
+
+/* Style the button */
+.search-button {
 	padding: 0.5rem 0.75rem;
 	background-color: #5B9279; 
 	color: #ffffff;
@@ -328,17 +327,17 @@ button:focus {
 	border-radius: 4px; /* Slightly rounded corners */
 	cursor: pointer;
 	transition: background-color 0.3s ease;
-  }
-  
-  .search-button:hover {
-	background-color: #8FCB9B;  /* Darker on hover */
-  }
-  
+}
+
+.search-button:hover {
+	background-color: #8FCB9B;  /* Darker on hover */	
+}
 
 
 
 
-  /* Make the overlay cover the entire screen and block interaction */
+
+/* Make the overlay cover the entire screen and block interaction */
 #loading-overlay {
 	position: fixed;       /* Stay fixed in the viewport */
 	top: 0;
@@ -351,14 +350,14 @@ button:focus {
 	align-items: center;
 	z-index: 9999;         /* Large z-index to ensure it sits above everything */
 	pointer-events: all;   /* Overlay captures all pointer events */
-  }
-  
-  /* Hide the overlay by default or when loading is complete */
-  #loading-overlay.hidden {
+}
+
+/* Hide the overlay by default or when loading is complete */
+#loading-overlay.hidden {
 	display: none;
-  }
-  
-  .spinner {
+}
+
+.spinner {
 	width: 3rem;                      /* Spinner width */
 	height: 3rem;                     /* Spinner height */
 	margin: 0 auto;                   /* Center it horizontally */
@@ -366,9 +365,9 @@ button:focus {
 	border-top: 0.5rem solid #8FCB9B;    /* The part that animates and gives it color */
 	border-radius: 50%;               /* Make it a circle */
 	animation: spin 1s linear infinite; /* The spinning animation */
-  }
-  
-  @keyframes spin {
+}
+
+@keyframes spin {
 	0%   { transform: rotate(0deg);   }
 	100% { transform: rotate(360deg); }
-  }
+}
