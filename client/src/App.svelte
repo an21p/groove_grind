@@ -108,7 +108,7 @@
 <div class="search-group">
   <input 
     bind:value={searchTerm} 
-    placeholder="Enter an artist or label" 
+    placeholder="Enter an artist name" 
     class="search-input" 
     on:keydown={handleKeydown}
   />
