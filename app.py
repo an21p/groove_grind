@@ -1,8 +1,9 @@
-from flask import Flask, send_from_directory, session, flash
+from flask import Flask, send_from_directory, session, flash, Response, stream_with_context
 from typing import Tuple, List, Any
 from crawler import Beatport, Label, Artist, Track, to_dict
 from datetime import datetime, timedelta, timezone
 from toolz import groupby
+import json
 
 app = Flask(__name__)
 app.secret_key = 'make_this_an_env'
@@ -58,16 +59,49 @@ def do_search(term):
 
 @handle_beatport
 def do_get_artist(slug, id):
-    artist, g, top10 = get_all_artist_labels_by_date(get_beatport(), slug=slug, id=id)
-    labels_by_date = list(
-        sorted(map(lambda item: {'label':item[1][0].label.to_dict(), 
-                                'date': min(map(lambda track:track.release_date, item[1]))}, 
-                    g.items()), 
-                key=lambda item: item['date']))
-    return {'top10': to_dict(top10), 
-            'labelsByDate': labels_by_date, 
-            'all': [{'label': g[k][0].label.to_dict(), 'tracks': to_dict(g[k])} for k in g],
-            'artist': artist.to_dict()}  
+    b = get_beatport()
+
+    def gen():
+        try:
+            artist, top10 = b.get_artist(slug=slug, id=id)
+            yield json.dumps({
+                'type': 'artist',
+                'artist': artist.to_dict(),
+                'top10': to_dict(top10),
+            }) + '\n'
+
+            all_tracks: List[Track] = []
+            for page_tracks in b.get_tracks_by_artist_stream(slug=artist.slug, id=artist.id):
+                all_tracks.extend(page_tracks)
+                yield json.dumps({
+                    'type': 'tracks',
+                    'tracks': to_dict(page_tracks),
+                    'cumulative': len(all_tracks),
+                }) + '\n'
+
+            sorted_tracks = sorted(all_tracks, key=lambda t: t.release_date)
+            grouped = groupby(lambda t: t.label.name, sorted_tracks)
+            labels_by_date = sorted(
+                [{
+                    'label': grouped[k][0].label.to_dict(),
+                    'date': min(t.release_date for t in grouped[k]),
+                } for k in grouped],
+                key=lambda item: item['date'],
+            )
+            all_groups = [
+                {'label': grouped[k][0].label.to_dict(), 'tracks': to_dict(grouped[k])}
+                for k in grouped
+            ]
+            yield json.dumps({
+                'type': 'done',
+                'labelsByDate': labels_by_date,
+                'all': all_groups,
+            }) + '\n'
+        except Exception as e:
+            app.logger.exception('stream failed')
+            yield json.dumps({'type': 'error', 'message': str(e)}) + '\n'
+
+    return Response(stream_with_context(gen()), mimetype='application/x-ndjson')
 
 if __name__ == "__main__":
     app.run(debug=True)

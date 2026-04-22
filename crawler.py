@@ -35,8 +35,9 @@ class Track:
         return f"{self.name} by {[a.name for a in self.artists]} remixed by {[a.name for a in self.remixers]} released on {self.label.name}"
     def to_dict(self):
         return {
-            'name': self.name, 
-            'slug': self.slug, 
+            'id': self.id,
+            'name': self.name,
+            'slug': self.slug,
             'artists': [a.to_dict() for a in self.artists],
             'remixers': [a.to_dict() for a in self.remixers],
             'label': self.label.to_dict(),
@@ -188,7 +189,7 @@ class Beatport:
                 params=params,
                 headers=headers
             )
-            
+
             page += 1
             params['page'] = f'{page}'
             response = loads(response.text)
@@ -197,6 +198,29 @@ class Beatport:
             if next_page is None or all is False:
                 break
         return  [Track(track) for track in flatten(tracks)]
+    def get_tracks_by_artist_stream(self, slug:str, id:int, per_page:int=150):
+        headers = self.__headers
+        page = 1
+        params = {
+            'description': f'{slug}',
+            'id': f'{id}',
+            'page': f'{page}',
+            'per_page': f'{per_page}',
+        }
+        while True:
+            response = get(
+                self.__artist_track_link.format(key=self.__key, slug=slug, id=id),
+                params=params,
+                headers=headers
+            )
+            page += 1
+            params['page'] = f'{page}'
+            response = loads(response.text)
+            results = response['pageProps']['dehydratedState']['queries'][1]['state']['data']['results']
+            yield [Track(track) for track in results]
+            next_page = response['pageProps']['dehydratedState']['queries'][1]['state']['data']['next']
+            if next_page is None:
+                break
     def get_tracks_by_label(self, slug:str='nipplekiss-records', id:int=53231, per_page:int=150, all:bool=False) -> List[Track]:
         headers = self.__headers
         page = 1

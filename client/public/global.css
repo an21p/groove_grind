@@ -1,373 +1,96 @@
-/*
-#12130F
-#5B9279
-#8FCB9B
-#EAE6E5
-#8f8073
-*/
+:root {
+	--ink:        #0a0906;
+	--ink-2:      #121008;
+	--ink-3:      #1a170f;
+	--ink-4:      #23201a;
+	--rule:       #2a2720;
+	--rule-soft:  #1a1813;
+	--paper:      #f5f1e8;
+	--paper-dim:  #a8a295;
+	--paper-mute: #6b675e;
+	--oxide:      #ff3d00;
+	--oxide-dim:  #c2301f;
+	--acid:       #d4ff00;
 
+	--serif: "Fraunces", "Times New Roman", Georgia, serif;
+	--mono:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
+	--gutter: clamp(1.25rem, 4vw, 3rem);
+	--measure: 68ch;
+
+	--rule-thin: 1px solid var(--rule);
+	--rule-thin-soft: 1px solid var(--rule-soft);
+
+	color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
 
 html, body {
-	position: relative;
-	width: 100%;
-	height: 100%;
+	margin: 0;
+	padding: 0;
+	min-height: 100%;
 }
 
 body {
-	color: #12130F;
-	margin: 0;
-	padding: 20px;
-	box-sizing: border-box;
-	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-	background-color: #EAE6E5;
-	line-height: 1.6;
+	background: var(--ink);
+	color: var(--paper);
+	font-family: var(--mono);
+	font-size: 14px;
+	line-height: 1.55;
+	font-feature-settings: "ss01", "ss02", "cv11";
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+
+	background-image:
+		radial-gradient(ellipse 90% 60% at 20% 0%, rgba(255, 61, 0, 0.07), transparent 70%),
+		radial-gradient(ellipse 70% 50% at 110% 10%, rgba(212, 255, 0, 0.03), transparent 60%),
+		url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.96 0 0 0 0 0.94 0 0 0 0 0.91 0 0 0 0.035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+	background-attachment: fixed;
 }
+
+::selection { background: var(--oxide); color: var(--ink); }
 
 a {
-	color: rgb(0,100,200);
+	color: inherit;
 	text-decoration: none;
+	border-bottom: 1px solid transparent;
+	transition: border-color .25s ease, color .25s ease;
 }
-
-a:hover {
-	text-decoration: underline;
-}
-
-a:visited {
-	color: rgb(0,80,160);
-}
-
-label {
-	display: block;
-}
-/* 
-img {
-	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-	margin-right: 0.5rem;
-} */
-
-input, button, select, textarea {
-	font-family: inherit;
-	font-size: inherit;
-	padding: 0.4em;
-	margin: 0 0 0.5em 0;
-	box-sizing: border-box;
-	border: 1px solid #ccc;
-	border-radius: 2px;
-}
-
-input:disabled {
-	color: #ccc;
-}
-
-input[type="range"] {
-	height: 0;
-}
+a:hover { border-bottom-color: var(--oxide); color: var(--oxide); }
 
 button {
-	color: #333;
-	background-color: #f4f4f4;
-	outline: none;
-}
-
-button:active {
-	background-color: #ddd;
-}
-
-button:focus {
-	border-color: #666;
-}
-
-
-.details {
-	margin: 20px auto;
-	max-width: 800px;
-}
-
-/* Summary Style */
-details summary {
-	font-size: 1.4rem;
-	font-weight: bold;
-	color: #2c3e50;
-	cursor: pointer;
-	margin-bottom: 10px;
-}
-
-details[open] summary {
-	color: #5B9279;
-}
-
-h4 {
-	margin: 0;
-}
-
-summary {
-	margin-top: 1rem;
-}
-
-
-.artists {
-	display: flex;
-	flex-wrap: wrap; /* Allow cards to wrap on smaller screens */
-	gap: 10px;
-	justify-content: center;
-}
-
-.artist-name {
-	font-size: 1rem;
-	text-align: center;
-}
-
-.artist-image-main {
-	width: 250px;
-	border-radius: 50%;
-}
-
-.artist-main {
-	background-color: #ffffff; /* White background */
-	padding: 1rem;            /* Sensible padding around content */
-	margin-bottom: 1rem;  
-	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
-	display: flex;
-}
-
-.artist-small {
-	display: flex;
-	/* align-items: center; */
-	/* margin-bottom: 8px; */
-}
-
-.artist-main img {
-	width: 4rem;
-	border-radius: 0;
-	margin-right: 10px;
-	align-items: center;      /* Vertically center the content */
-}
-
-.artist-item {
-	background-color: #ffffff; /* White background */
-	padding: 0.5rem;            /* Sensible padding around content */
-	margin-bottom: 0.2rem;      /* Space between each .label item (if it’s in a list) */
-	border-radius: 6px;       /* Slightly rounded corners (optional) */
-	display: flex;            /* So items line up nicely */
-	flex-direction: column;
-	align-items: center;      /* Vertically center the content */
-	gap: 0.2rem;              /* Space between elements inside .label */
-	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
-	transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.artist-item:hover {
-	transform: translateY(-5px); 
-	box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-}
-
-.artist-small img {
-	min-width: 2rem;
-	min-height: 2rem;
-	max-width: 2rem;
-	max-height: 2rem;
-	border-radius: 50%;
-	margin-right: 10px;
-}
-
-
-.label {
-	background-color: #ffffff; /* White background */
-	padding: 1rem;            /* Sensible padding around content */
-	margin-bottom: 1rem;      /* Space between each .label item (if it’s in a list) */
-	border-radius: 6px;       /* Slightly rounded corners (optional) */
-	display: flex;            /* So items line up nicely */
-	align-items: center;      /* Vertically center the content */
-	gap: 0.5rem;              /* Space between elements inside .label */
-	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
-}
-
-.label img {
-	display: block; /* Removes any default bottom spacing for images */
-}
-
-.label b {
-	font-weight: 600; /* Make the label name stand out */
-}
-
-/* Flex Layout for Tracks */
-.tracks {
-	display: flex;
-	flex-wrap: wrap; /* Allow cards to wrap on smaller screens */
-	gap: 10px;
-	justify-content: center;
-}
-
-/* Individual Track Card */
-.track {
-	background-color: #fff;
-	border-radius: 10px;
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-	width: 14rem;
-	max-width: 640px;
-	padding: 20px;
-	margin-bottom: 10px;
-	place-items: center; // Centers both horizontally and vertically
-	/* transition: transform 0.3s ease, box-shadow 0.3s ease; */
-}
-
-.track-info {
-	display: flex;
-	flex-flow: column;
-	place-items: start;
-}
-
-.track-title {
-	min-height: 6rem;
-}
-
-/* .track:hover {
-transform: translateY(-5px); 
-box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-} */
-
-/* Track Image */
-.track-image {
-	width: 128px;
-	border-radius: 8px;
-	display: block;
-	margin-bottom: 15px;
-	min-width: 100%;
-}
-
-/* Track Title */
-.track h4 {
-	font-size: 1.2rem;
-	font-weight: bold;
-	color: #2c3e50;
-	margin-bottom: 10px;
-}
-
-/* Title for Artists/Remixers */
-.title {
-	font-size: 1rem;
-	font-weight: bold;
-	color: #2980b9;
-	margin: 10px 0 5px 0;
-}
-
-/* Artist/Remixer Info */
-.track div {
-	display: flex;
-	/* align-items: center; */
-	/* margin-bottom: 8px; */
-}
-
-.track div span {
-	font-size: 0.9rem;
-	color: #34495e;
-	font-weight: normal;
-}
-
-/* Audio Player */
-.track audio {
-	width: 100%;
-	margin-top: 15px;
-	border-radius: 8px;
-	outline: none;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-.track {
-	max-width: 100%;
-}
-
-.track h4 {
-	font-size: 1.1rem;
-}
-
-.title {
-	font-size: 0.9rem;
-}
-
-.track div span {
-	font-size: 0.9rem;
-}
-}
-
-
-
-
-/* You can put this in a <style> block in Svelte, or in a separate CSS file */
-
-/* Wrap the input and button in a flex container for neat alignment */
-.search-group {
-	display: inline-flex;
-	gap: 0.5rem; /* Space between input and button */
-}
-
-/* Style the text input */
-.search-input {
-	padding: 0.5rem 0.75rem;
-	border: 1px solid #8f8073;
-	border-radius: 6px;  /* Rounded corners */
-	font-size: 1rem;
-	outline: none;       /* Remove default focus outline */
-	transition: border-color 0.2s ease;
-}
-
-.search-input:focus {
-	border-color: #5B9279;  /* Slightly darker border on focus */
-}
-
-/* Style the button */
-.search-button {
-	padding: 0.5rem 0.75rem;
-	background-color: #5B9279; 
-	color: #ffffff;
-	font-size: 1rem;
+	font: inherit;
+	color: inherit;
+	background: transparent;
 	border: none;
-	border-radius: 4px; /* Slightly rounded corners */
+	padding: 0;
 	cursor: pointer;
-	transition: background-color 0.3s ease;
 }
 
-.search-button:hover {
-	background-color: #8FCB9B;  /* Darker on hover */	
+input {
+	font: inherit;
+	color: inherit;
+	background: transparent;
+	border: none;
+	outline: none;
 }
 
+img { max-width: 100%; display: block; }
+hr { border: none; border-top: var(--rule-thin-soft); margin: 0; }
+h1, h2, h3, h4, h5, h6, p { margin: 0; }
 
-
-
-
-/* Make the overlay cover the entire screen and block interaction */
-#loading-overlay {
-	position: fixed;       /* Stay fixed in the viewport */
-	top: 0;
-	left: 0;
-	width: 100vw;          /* Cover full width */
-	height: 100vh;         /* Cover full height */
-	background-color: rgba(255, 255, 255, 0.5); /* Semi-transparent white overlay */
-	display: flex;         /* Center the spinner */
-	justify-content: center;
-	align-items: center;
-	z-index: 9999;         /* Large z-index to ensure it sits above everything */
-	pointer-events: all;   /* Overlay captures all pointer events */
+.mono { font-family: var(--mono); }
+.serif { font-family: var(--serif); }
+.caps {
+	text-transform: uppercase;
+	letter-spacing: 0.18em;
+	font-size: 11px;
+	font-weight: 500;
 }
+.dim { color: var(--paper-dim); }
+.mute { color: var(--paper-mute); }
+.accent { color: var(--oxide); }
 
-/* Hide the overlay by default or when loading is complete */
-#loading-overlay.hidden {
-	display: none;
-}
-
-.spinner {
-	width: 3rem;                      /* Spinner width */
-	height: 3rem;                     /* Spinner height */
-	margin: 0 auto;                   /* Center it horizontally */
-	border: 0.5rem solid #12130F;        /* Background of the spinner track */
-	border-top: 0.5rem solid #8FCB9B;    /* The part that animates and gives it color */
-	border-radius: 50%;               /* Make it a circle */
-	animation: spin 1s linear infinite; /* The spinning animation */
-}
-
-@keyframes spin {
-	0%   { transform: rotate(0deg);   }
-	100% { transform: rotate(360deg); }
-}
+/* Native audio player fallback styling — hidden when custom player is used */
+audio { display: none; }
