@@ -4,9 +4,10 @@ from crawler import Beatport, Label, Artist, Track, to_dict
 from datetime import datetime, timedelta, timezone
 from toolz import groupby
 import json
+import os
 
 app = Flask(__name__)
-app.secret_key = 'make_this_an_env'
+app.secret_key = os.environ['FLASK_SECRET_KEY']
 
 # wrapper
 def handle_beatport(func):
