@@ -42,6 +42,11 @@ jobs:
     - name: Verify installed packages
       run: pip show requests_html
 
+    - name: Run fast tests
+      env:
+        FLASK_SECRET_KEY: test-dummy
+      run: python -m unittest discover -v
+
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v3
       with:

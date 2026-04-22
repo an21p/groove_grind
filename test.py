@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 
-# python -m unittest discover -v
+# python -m unittest discover -v                     (fast tests only)
+# RUN_LIVE_TESTS=1 python -m unittest discover -v    (includes live Beatport)
 
+import os
 import unittest
-from crawler import Beatport 
+from crawler import Beatport
 
+
+@unittest.skipUnless(os.getenv('RUN_LIVE_TESTS'),
+                     'set RUN_LIVE_TESTS=1 to run live Beatport tests')
 class BeatportTestCase(unittest.TestCase):
 
     def setUp(self):
