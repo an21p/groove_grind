@@ -41,7 +41,7 @@ class BeatportTestCase(unittest.TestCase):
         self.assertEqual(len(john.top10), 10)
         self.assertEqual(len(john.tracks), 25)
 
-    def test_get_artist_tracks(self):
+    def test_get_label_tracks(self):
         """Should be able to fetch an label list of tracks"""
         _, l = self.beatport.search('realm')
         realm = l[0]
