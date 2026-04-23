@@ -273,24 +273,6 @@
 				<div class="mark-sub caps">— a research instrument for the Beatport catalog —</div>
 			</div>
 		</div>
-		<div class="masthead-meta">
-			<div class="meta-cell">
-				<div class="caps mute">Source</div>
-				<div>Beatport.com</div>
-			</div>
-			<div class="meta-cell">
-				<div class="caps mute">Method</div>
-				<div>Next.js data scrape</div>
-			</div>
-			<div class="meta-cell">
-				<div class="caps mute">Scope</div>
-				<div>Artists · Labels · Tracks</div>
-			</div>
-			<div class="meta-cell">
-				<div class="caps mute">Format</div>
-				<div>Catalog, chronological</div>
-			</div>
-		</div>
 	</section>
 
 	<!-- Search hero / prompt -->
@@ -673,25 +655,6 @@
 		padding: 0 0.05em;
 	}
 	.mark-sub { color: var(--paper-dim); letter-spacing: .2em; }
-
-	.masthead-meta {
-		display: grid;
-		grid-template-columns: repeat(4, 1fr);
-		gap: 1px;
-		background: var(--rule);
-		border: var(--rule-thin);
-		margin-top: 2.5rem;
-	}
-	.meta-cell {
-		background: var(--ink);
-		padding: 14px 18px;
-	}
-	.meta-cell > div:last-child {
-		font-family: var(--serif);
-		font-style: italic;
-		font-size: 17px;
-		margin-top: 4px;
-	}
 
 	/* Hero search */
 	.hero {
@@ -1338,7 +1301,6 @@
 	@media (max-width: 900px) {
 		.band { grid-template-columns: 1fr 1fr; }
 		.band-center { display: none; }
-		.masthead-meta { grid-template-columns: repeat(2, 1fr); }
 		.dossier { grid-template-columns: 1fr; }
 		.dossier-portrait { max-width: 240px; }
 		.dossier-stats { grid-template-columns: repeat(2, 1fr); }
@@ -1354,5 +1316,22 @@
 		.timeline-body { flex-direction: column; align-items: flex-start; }
 		.tabs { flex-wrap: wrap; }
 		.tab { padding: 1rem 1rem 1rem 0; margin-right: 1rem; }
+	}
+
+	@media (max-width: 640px) {
+		.frame { padding: 0 1rem 4rem; }
+		.dossier-stats { grid-template-columns: 1fr; }
+		.dossier-portrait { max-width: 160px; }
+		.dossier-name { font-size: clamp(2rem, 10vw, 3.5rem); }
+		.index-thumb { width: 56px; height: 56px; }
+		.index-row { grid-template-columns: 32px 56px 1fr; gap: 0.75rem; }
+		.track-art { width: 64px; height: 64px; }
+		.track-row, .track-row.dense { grid-template-columns: 32px 64px 1fr; gap: 0.5rem; }
+		.timeline-row { grid-template-columns: 1fr; gap: 0.5rem; }
+		.timeline-logo { width: 64px; height: 64px; }
+	}
+
+	@media (max-width: 340px) {
+		.mark-word { font-size: clamp(2.25rem, 13vw, 3.5rem); }
 	}
 </style>
