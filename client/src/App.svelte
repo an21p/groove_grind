@@ -1322,7 +1322,7 @@
 		.frame { padding: 0 1rem 4rem; }
 		.mark-word { font-size: clamp(2.5rem, 11vw, 4.5rem); }
 		.prompt-field { flex-wrap: wrap; gap: 0.75rem 1rem; }
-		.prompt-input { min-width: 0; }
+		.prompt-input { min-width: 0; font-size: clamp(1.125rem, 5.5vw, 1.5rem); }
 		.prompt-go { flex: 0 0 100%; justify-content: space-between; }
 		.dossier-stats { grid-template-columns: 1fr; }
 		.dossier-portrait { max-width: 160px; }
