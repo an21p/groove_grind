@@ -1320,6 +1320,10 @@
 
 	@media (max-width: 640px) {
 		.frame { padding: 0 1rem 4rem; }
+		.mark-word { font-size: clamp(2.5rem, 11vw, 4.5rem); }
+		.prompt-field { flex-wrap: wrap; gap: 0.75rem 1rem; }
+		.prompt-input { min-width: 0; }
+		.prompt-go { flex: 0 0 100%; justify-content: space-between; }
 		.dossier-stats { grid-template-columns: 1fr; }
 		.dossier-portrait { max-width: 160px; }
 		.dossier-name { font-size: clamp(2rem, 10vw, 3.5rem); }
