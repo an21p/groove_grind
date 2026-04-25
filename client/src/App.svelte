@@ -18,7 +18,7 @@
 	let artistTop10 = null;
 	let artistLabelByDate = null;
 	let artistTracksByLabel = null;
-	let artistView = 'top10';
+	let artistView = 'labels';
 
 	// Streaming state for /artist/.../labels (NDJSON)
 	let streamingCatalog = false;
@@ -77,7 +77,7 @@
 		artistTop10 = null;
 		artistLabelByDate = null;
 		artistTracksByLabel = null;
-		artistView = 'top10';
+		artistView = 'labels';
 		streamingCatalog = true;
 		tracksLoaded = 0;
 		progressiveCatalog = [];
@@ -708,8 +708,9 @@
 		align-items: center;
 		gap: 8px;
 		padding: 10px 18px;
-		border: 1px solid var(--rule);
-		color: var(--paper-dim);
+		border: 1px solid var(--oxide);
+		color: var(--ink);
+		background: var(--oxide);
 		transition: all .25s ease;
 		white-space: nowrap;
 	}
