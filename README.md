@@ -1,6 +1,6 @@
 # Groove Grind
 
-Groove Grind is a Beatport browser that scrapes `www.beatport.com/_next/data/*` JSON endpoints to search artists and labels and surface an artist's top 10, their labels ordered by first release date, and their full track history grouped by label. Flask serves a compiled Svelte SPA from the same process and also proxies the Beatport-scraping endpoints.
+Groove Grind is a Beatport browser that uses the official Beatport v4 API to search artists and labels and surface an artist's top 10, their labels ordered by first release date, and their full track history grouped by label. Flask serves a compiled Svelte SPA from the same process and proxies the Beatport API endpoints.
 
 ## Local development
 
@@ -28,10 +28,14 @@ npm run autobuild
 ## Running tests
 
 ```bash
-python -m unittest discover -v
+# Fast unit tests (no network) — also run by CI before deploy
+.venv/bin/python -m unittest discover -v
+
+# Live end-to-end tests against the real Beatport API (requires credentials in .env)
+RUN_LIVE_TESTS=1 .venv/bin/python -m unittest test -v
 ```
 
-Tests hit live Beatport and include exact-count assertions (for example `len(john.tracks) == 25`) that drift as artist catalogs change. Treat failures as "data changed" before "scraper broke."
+The fast suite covers error taxonomy, models, auth, client, and the app routes — no network required. The live suite (`test.py`) is skipped unless `RUN_LIVE_TESTS=1` and `BEATPORT_USERNAME`/`BEATPORT_PASSWORD` are set.
 
 ## Azure deployment
 
@@ -126,5 +130,4 @@ az webapp log tail --name $APP_NAME --resource-group $RESOURCE_GROUP
 
 ## Known issues / TODO
 
-- The test suite hits live Beatport with exact-count assertions that drift as catalogs update.
 - The GitHub secret `AZURE_CREDENTIALS` actually holds publish-profile XML, not service-principal credentials. Rename to `AZURE_WEBAPP_PUBLISH_PROFILE` and update the workflow to match.

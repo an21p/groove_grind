@@ -1,125 +1,112 @@
-from flask import Flask, send_from_directory, session, flash, Response, stream_with_context
-from typing import Tuple, List, Any
-from crawler import Beatport, Label, Artist, Track, to_dict
-from datetime import datetime, timedelta, timezone
+from flask import Flask, send_from_directory, Response, stream_with_context
 from dotenv import load_dotenv
 from toolz import groupby
-import functools
+from beatport import BeatportClient, TokenManager, BeatportError
 import json
 import os
 
 load_dotenv()
 
+# Optional outbound proxy (e.g. a residential proxy) to bypass datacenter-IP
+# blocks if the official API is ever 403'd from Azure. requests honors
+# HTTP(S)_PROXY natively, so map the single BEATPORT_PROXY knob onto them.
+# No-op when unset.
+_proxy = os.environ.get("BEATPORT_PROXY")
+if _proxy:
+    os.environ["HTTP_PROXY"] = _proxy
+    os.environ["HTTPS_PROXY"] = _proxy
+
 app = Flask(__name__)
-app.secret_key = os.environ['FLASK_SECRET_KEY']
+app.secret_key = os.environ["FLASK_SECRET_KEY"]
 
-# wrapper
-def handle_beatport(func):
-    @functools.wraps(func)
-    def handler(*args, **kwargs):
-        now = datetime.now(timezone.utc).timestamp()
-        if not session.get('beatport') or now > session.get('expiry', 0):
-            app.logger.info('-----> (re)unlocking beatport key')
-            session['beatport'] = Beatport().get_key()
-            session['expiry'] = now + 12 * 3600
+PUBLIC_CLIENT_ID = "0GIvkCltVIuPkkwSJHp6NDb3s0potTjLBQr388Dd"
 
-        app.logger.info('-----> beatport key %s ,expiry %s',  session['beatport'], session['expiry'])
-        return func(*args, **kwargs)
-    return handler
+_tokens = TokenManager(
+    username=os.environ.get("BEATPORT_USERNAME", ""),
+    password=os.environ.get("BEATPORT_PASSWORD", ""),
+    client_id=os.environ.get("BEATPORT_CLIENT_ID", PUBLIC_CLIENT_ID),
+)
+beatport = BeatportClient(_tokens)
 
 
-def get_beatport() -> Beatport:
-    key=session.get('beatport', "")
-    return Beatport(key=key)
+def _error_body(err):
+    return {"error": {"code": err.code, "message": err.user_message}}
 
-def get_all_artist_labels_by_date(b: Beatport, slug: str, id: str) -> Tuple[Artist, Any, List[Track]]:
-    a, top10 = b.get_artist(slug=slug, id=id)
-    a.enrich(beatport=b)
-    s = sorted(a.tracks, key=lambda x:x.release_date)
-    g = groupby(lambda x: x.label.name, s)
-    return a, g, top10
 
-# Path for our main Svelte page
-@app.route('/')
+@app.route("/")
 def base():
-    return send_from_directory('client/public', 'index.html')
+    return send_from_directory("client/public", "index.html")
 
-# Path for all the static files (compiled JS/CSS, etc.)
+
 @app.route("/<path:path>")
 def home(path):
-    return send_from_directory('client/public', path)
+    return send_from_directory("client/public", path)
+
 
 @app.route("/search/<term>")
 def search(term):
-    return do_search(term)
+    try:
+        artists, labels = beatport.search(term)
+    except BeatportError as e:
+        app.logger.warning("search failed: %s", e)
+        return _error_body(e), e.http_status
+    return {
+        "artists": [a.to_dict() for a in artists],
+        "labels": [lbl.to_dict() for lbl in labels],
+    }
+
 
 @app.route("/artist/<slug>/<id>/labels")
 def get_artist(slug, id):
-    return do_get_artist(slug, id)
-
-@handle_beatport
-def do_search(term):
-    artists, labels = get_beatport().search(term)
-    return {'artists': to_dict(artists), 'labels': to_dict(labels)}
-
-@handle_beatport
-def do_get_artist(slug, id):
-    b = get_beatport()
-
     def gen():
         try:
-            artist, top10 = b.get_artist(slug=slug, id=id)
+            artist = beatport.get_artist(id)
+            top10 = beatport.get_artist_top(id, 10)
             yield json.dumps({
-                'type': 'artist',
-                'artist': artist.to_dict(),
-                'top10': to_dict(top10),
-            }) + '\n'
+                "type": "artist",
+                "artist": artist.to_dict(),
+                "top10": [t.to_dict() for t in top10],
+            }) + "\n"
 
-            all_tracks: List[Track] = []
-            for page_tracks in b.get_tracks_by_artist_stream(slug=artist.slug, id=artist.id):
-                all_tracks.extend(page_tracks)
+            all_tracks = []
+            for page in beatport.iter_artist_tracks(id):
+                all_tracks.extend(page)
                 yield json.dumps({
-                    'type': 'tracks',
-                    'tracks': to_dict(page_tracks),
-                    'cumulative': len(all_tracks),
-                }) + '\n'
+                    "type": "tracks",
+                    "tracks": [t.to_dict() for t in page],
+                    "cumulative": len(all_tracks),
+                }) + "\n"
 
             sorted_tracks = sorted(all_tracks, key=lambda t: t.release_date)
             grouped = groupby(lambda t: t.label.name, sorted_tracks)
             labels_by_date = sorted(
                 [{
-                    'label': grouped[k][0].label.to_dict(),
-                    'date': min(t.release_date for t in grouped[k]),
+                    "label": grouped[k][0].label.to_dict(),
+                    "date": min(t.release_date for t in grouped[k]),
                 } for k in grouped],
-                key=lambda item: item['date'],
+                key=lambda item: item["date"],
             )
             all_groups = [
-                {'label': grouped[k][0].label.to_dict(), 'tracks': to_dict(grouped[k])}
+                {"label": grouped[k][0].label.to_dict(),
+                 "tracks": [t.to_dict() for t in grouped[k]]}
                 for k in grouped
             ]
             yield json.dumps({
-                'type': 'done',
-                'labelsByDate': labels_by_date,
-                'all': all_groups,
-            }) + '\n'
-        except Exception as e:
-            app.logger.exception('stream failed')
-            yield json.dumps({'type': 'error', 'message': str(e)}) + '\n'
+                "type": "done",
+                "labelsByDate": labels_by_date,
+                "all": all_groups,
+            }) + "\n"
+        except BeatportError as e:
+            app.logger.warning("artist stream failed: %s", e)
+            yield json.dumps({"type": "error", "code": e.code,
+                              "message": e.user_message}) + "\n"
+        except Exception:
+            app.logger.exception("artist stream crashed")
+            yield json.dumps({"type": "error", "code": "error",
+                              "message": "Something went wrong. Please try again."}) + "\n"
 
-    return Response(stream_with_context(gen()), mimetype='application/x-ndjson')
+    return Response(stream_with_context(gen()), mimetype="application/x-ndjson")
+
 
 if __name__ == "__main__":
     app.run(debug=True)
-    # b = Beatport()
-    # artists, labels = b.search('chris ger')
-    # a = artists[0]
-    # a, g, top10 = get_all_artist_labels_by_date(b, slug=a.slug, id=a.id)
-    # labels_by_date = list(
-    #     sorted(map(lambda item: {'label':item[1][0].label.to_dict(), 
-    #                             'date': min(map(lambda track:track.release_date, item[1]))}, 
-    #                 g.items()), 
-    #             key=lambda item: item['date']))
-    # print(labels_by_date)
-
-    
-

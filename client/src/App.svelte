@@ -13,6 +13,7 @@
 
 	let artists = null;
 	let labels = null;
+	let searchError = null;   // string | null
 
 	let artist = null;
 	let artistTop10 = null;
@@ -57,14 +58,25 @@
 		artist = null;
 		artists = null;
 		labels = null;
+		searchError = null;
+		streamError = null;
 		fetch(`./search/${encodeURIComponent(searchTerm.trim())}`)
-			.then(r => r.json())
-			.then(d => {
+			.then(async r => {
+				const d = await r.json().catch(() => ({}));
+				if (!r.ok || (d && d.error)) {
+					searchError = (d && d.error && d.error.message)
+						|| 'Beatport is temporarily unavailable. Please try again in a moment.';
+					loading = false;
+					return;
+				}
 				artists = d.artists || [];
 				labels = d.labels || [];
 				loading = false;
 			})
-			.catch(() => { loading = false; });
+			.catch(() => {
+				searchError = 'Beatport is temporarily unavailable. Please try again in a moment.';
+				loading = false;
+			});
 	}
 
 	async function openArtist(slug, id) {
@@ -82,6 +94,7 @@
 		tracksLoaded = 0;
 		progressiveCatalog = [];
 		streamError = null;
+		searchError = null;
 
 		try {
 			const res = await fetch(`./artist/${slug}/${id}/labels`, { signal: controller.signal });
@@ -133,7 +146,7 @@
 			artistTracksByLabel = evt.all;
 			streamingCatalog = false;
 		} else if (evt.type === 'error') {
-			streamError = evt.message;
+			streamError = evt.message || 'Beatport is temporarily unavailable. Please try again in a moment.';
 			streamingCatalog = false;
 		}
 	}
@@ -159,6 +172,7 @@
 		if (activeStreamController) { activeStreamController.abort(); activeStreamController = null; }
 		streamingCatalog = false;
 		streamError = null;
+		searchError = null;
 		artist = null;
 		stopAudio();
 	}
@@ -319,8 +333,29 @@
 		</div>
 	{/if}
 
+	<!-- Search connection error (distinct from a zero-result search) -->
+	{#if searchError && !artist && !loading}
+		<section class="section">
+			<div class="stream-error caps" role="alert">
+				<span class="stream-error-label">Connection problem</span>
+				<span class="stream-error-msg">{searchError}</span>
+			</div>
+		</section>
+	{/if}
+
+	<!-- Artist stream error before artist loaded (e.g. get_artist failed) -->
+	{#if streamError && !artist && !loading}
+		<section class="section">
+			<button class="breadcrumb caps" on:click={backToSearch}>← Back to index</button>
+			<div class="stream-error caps" role="alert">
+				<span class="stream-error-label">Transmission interrupted</span>
+				<span class="stream-error-msg">{streamError}</span>
+			</div>
+		</section>
+	{/if}
+
 	<!-- Artist index (search results) -->
-	{#if artists && !artist && !loading}
+	{#if artists && !artist && !loading && !streamError}
 		<section class="section">
 			<header class="section-head">
 				<div class="section-head-left">
