@@ -5,6 +5,7 @@ from pprint import pprint
 from requests_html import HTMLSession
 from requests import get
 from re import compile
+from os import environ
 
 # from toolz import groupby
 
@@ -105,6 +106,14 @@ class DefaultJSONEncoder(JSONEncoder):
 
 class Beatport:
     def __init__(self, key=None):
+        # Optional outbound proxy (e.g. a residential/rotating proxy) to bypass
+        # Beatport's datacenter-IP block (HTTP 403 from Azure). requests and
+        # requests_html honor HTTP(S)_PROXY natively, so setting these routes
+        # every Beatport call through the proxy. No-op if BEATPORT_PROXY unset.
+        proxy = environ.get('BEATPORT_PROXY')
+        if proxy:
+            environ['HTTP_PROXY'] = proxy
+            environ['HTTPS_PROXY'] = proxy
         self.__headers =  {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:132.0) Gecko/20100101 Firefox/132.0',
             'Accept': '*/*',
