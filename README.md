@@ -7,13 +7,13 @@ Groove Grind is a Beatport browser that scrapes `www.beatport.com/_next/data/*` 
 ### Backend
 
 ```bash
-python -m venv .venv
+uv venv
+uv pip install -r requirements.txt
 source .venv/bin/activate
-python -m pip install -r requirements.txt
 python app.py
 ```
 
-The dev server runs at http://127.0.0.1:5000.
+The dev server runs at http://127.0.0.1:5000. The `.venv` is uv-managed, so create it with `uv venv` rather than `python -m venv`. `app.py` calls `load_dotenv()`, so `FLASK_SECRET_KEY` and the `BEATPORT_*` variables are read from a local `.env` file.
 
 ### Frontend
 
@@ -87,7 +87,7 @@ az webapp config set \
   --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
 ```
 
-Configure app settings. `SCM_DO_BUILD_DURING_DEPLOYMENT=true` tells Azure to run `pip install` on the uploaded package. `FLASK_SECRET_KEY` is intended to replace the hardcoded placeholder in `app.py:9` — generate a random value (`python -c 'import secrets; print(secrets.token_hex(32))'`) and set it now:
+Configure app settings. `SCM_DO_BUILD_DURING_DEPLOYMENT=true` tells Azure to run `pip install` on the uploaded package. `app.py` reads `app.secret_key` from `os.environ['FLASK_SECRET_KEY']`, so this setting is required — generate a random value (`python -c 'import secrets; print(secrets.token_hex(32))'`) and set it now:
 
 ```bash
 az webapp config appsettings set \
@@ -96,7 +96,7 @@ az webapp config appsettings set \
   --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true FLASK_SECRET_KEY=<paste-generated-value>
 ```
 
-Note: `app.py` still has `app.secret_key = 'make_this_an_env'` hardcoded. Setting the app setting alone is not enough — the code must be changed to read `os.environ['FLASK_SECRET_KEY']` before the setting takes effect. This is tracked in Known issues below.
+Note: `app.py` reads `app.secret_key` from `os.environ['FLASK_SECRET_KEY']`, so this app setting takes effect on the next deploy. If it is unset, the app fails to import on startup.
 
 Download the publish profile XML. This is the credential the GitHub Actions workflow uses to deploy:
 
@@ -126,6 +126,5 @@ az webapp log tail --name $APP_NAME --resource-group $RESOURCE_GROUP
 
 ## Known issues / TODO
 
-- `app.secret_key` in `app.py:9` is hardcoded to `'make_this_an_env'`. Replace with `os.environ['FLASK_SECRET_KEY']` before any production traffic; the Azure app setting is already plumbed above and waiting.
 - The test suite hits live Beatport with exact-count assertions that drift as catalogs update.
 - The GitHub secret `AZURE_CREDENTIALS` actually holds publish-profile XML, not service-principal credentials. Rename to `AZURE_WEBAPP_PUBLISH_PROFILE` and update the workflow to match.

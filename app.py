@@ -2,22 +2,26 @@ from flask import Flask, send_from_directory, session, flash, Response, stream_w
 from typing import Tuple, List, Any
 from crawler import Beatport, Label, Artist, Track, to_dict
 from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
 from toolz import groupby
+import functools
 import json
 import os
+
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ['FLASK_SECRET_KEY']
 
 # wrapper
 def handle_beatport(func):
+    @functools.wraps(func)
     def handler(*args, **kwargs):
-        session['beatport'] = session.get('beatport', Beatport().get_key())
-        session['expiry'] = session.get('expiry', datetime.now(timezone.utc) + timedelta(hours=12))
-        if datetime.now(timezone.utc) > session['expiry']:
-            app.logger.info('-----> expired')
+        now = datetime.now(timezone.utc).timestamp()
+        if not session.get('beatport') or now > session.get('expiry', 0):
+            app.logger.info('-----> (re)unlocking beatport key')
             session['beatport'] = Beatport().get_key()
-            session['expiry'] =  datetime.now() + timedelta(seconds=1)
+            session['expiry'] = now + 12 * 3600
 
         app.logger.info('-----> beatport key %s ,expiry %s',  session['beatport'], session['expiry'])
         return func(*args, **kwargs)

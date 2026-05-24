@@ -9,8 +9,8 @@ from re import compile
 # from toolz import groupby
 
 def check(status):
-    if status == 404:
-        raise Exception('404')
+    if status != 200:
+        raise Exception(f'Beatport returned HTTP {status} (404=stale build key, 403/429=blocked/rate-limited)')
     
 def flatten(xss):
     return [x for xs in xss for x in xs]
@@ -131,6 +131,11 @@ class Beatport:
         r = session.get(uri)
         compiled = compile(pattern)
         ms = compiled.search(r.text)
+        if ms is None:
+            raise Exception(
+                f'Could not extract Beatport build ID from homepage (HTTP {r.status_code}); '
+                'the homepage layout or _buildManifest path likely changed'
+            )
         containsKey = ms.group(1).strip()
         containsKey = containsKey[-25:]
         # second pass

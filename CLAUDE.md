@@ -11,12 +11,13 @@ Groove Grind — a Beatport browser that scrapes `www.beatport.com/_next/data/*`
 ### Backend (Flask + scraper)
 
 ```bash
-# One-time setup
-python -m venv .venv
+# One-time setup (the .venv is uv-managed — use uv, not python -m venv)
+uv venv
+uv pip install -r requirements.txt
 source .venv/bin/activate
-python -m pip install -r requirements.txt
 
-# Run the dev server (http://127.0.0.1:5000)
+# Run the dev server (http://127.0.0.1:5000). app.py calls load_dotenv(),
+# so FLASK_SECRET_KEY (and the BEATPORT_* vars) are read from .env automatically.
 python app.py
 
 # Run the scraper directly (search "darude" / "realm" + enrich)
@@ -78,7 +79,7 @@ Response shape is brittle: the code indexes into `response['pageProps']['dehydra
 
 ## Key conventions
 
-- `app.secret_key = 'make_this_an_env'` in `app.py:8` is a placeholder — replace via env var before any real deployment (sessions currently cache the Beatport build-ID key).
+- `app.secret_key` is read from `os.environ['FLASK_SECRET_KEY']` (`app.py`), and `load_dotenv()` loads it from `.env` for local dev. The app will fail to import if the var is set neither in `.env` nor the environment (e.g. the Azure app setting in prod). Sessions cache the Beatport build-ID key, so the secret must be stable across restarts.
 - README's Svelte install snippet says `npm run autobuild`, not `npm run dev`. `dev` runs both autobuild and a `sirv` static server, but Flask is the intended server — prefer `autobuild` alone.
 - Tests in `test.py` hit live Beatport. They assert exact counts (`len(john.tracks) == 25`) that depend on an artist's current catalog and will drift. Treat failures there as "data changed" first, "scraper broke" second.
 - `test.py` has two methods named `test_get_artist_tracks` — the second overrides the first, so only the label-tracks assertion actually runs under unittest. Rename if adding back the artist-tracks check.
