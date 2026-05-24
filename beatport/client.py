@@ -1,12 +1,12 @@
-import requests
+from curl_cffi import requests as cffi_requests
 
-from .auth import API_BASE, HEADERS, HTTP_TIMEOUT
+from .auth import API_BASE, HEADERS, HTTP_TIMEOUT, default_session
 from .errors import BeatportAuthError, BeatportRateLimited, BeatportUnavailable
 from .models import Artist, Label, Track
 
 
 class BeatportClient:
-    def __init__(self, token_manager, base=API_BASE, session_factory=requests.Session):
+    def __init__(self, token_manager, base=API_BASE, session_factory=default_session):
         self._tokens = token_manager
         self._base = base
         self._session_factory = session_factory
@@ -18,7 +18,7 @@ class BeatportClient:
             with self._session_factory() as s:
                 r = s.get(f"{self._base}{path}", params=params or {},
                           headers=headers, timeout=HTTP_TIMEOUT)
-        except requests.RequestException as e:
+        except cffi_requests.exceptions.RequestException as e:
             raise BeatportUnavailable(str(e))
 
         if r.status_code == 200:

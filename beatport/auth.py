@@ -3,7 +3,7 @@ import threading
 import time
 from urllib.parse import urlparse, parse_qs
 
-import requests
+from curl_cffi import requests as cffi_requests
 
 from .errors import BeatportAuthError, BeatportUnavailable
 
@@ -18,13 +18,23 @@ EXPIRY_BUFFER_SECONDS = 60
 HTTP_TIMEOUT = 30
 HEADERS = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
 
+# Beatport sits behind Cloudflare, which 403s stock requests/urllib3's TLS
+# fingerprint from datacenter IPs (e.g. Azure) while letting browsers/curl
+# through. curl_cffi impersonates a real browser's TLS handshake, so our
+# requests are not flagged. This is the production fix for the Azure 403.
+IMPERSONATE = "chrome"
+
+
+def default_session():
+    return cffi_requests.Session(impersonate=IMPERSONATE)
+
 
 class TokenManager:
     """Obtains and caches one Beatport API access token per process,
     refreshing it before expiry. Thread-safe."""
 
     def __init__(self, username, password, client_id,
-                 session_factory=requests.Session, clock=time.monotonic):
+                 session_factory=default_session, clock=time.monotonic):
         self._username = username
         self._password = password
         self._client_id = client_id
@@ -67,7 +77,7 @@ class TokenManager:
                     "refresh_token": self._refresh_token,
                     "client_id": self._client_id,
                 }, timeout=HTTP_TIMEOUT)
-        except requests.RequestException as e:
+        except cffi_requests.exceptions.RequestException as e:
             raise BeatportUnavailable(str(e))
         if r.status_code != 200 or "access_token" not in r.text:
             raise BeatportAuthError(f"refresh failed: HTTP {r.status_code}")
@@ -104,5 +114,5 @@ class TokenManager:
                 if r.status_code != 200 or "access_token" not in r.text:
                     raise BeatportAuthError(f"token exchange failed: HTTP {r.status_code}")
                 self._store(r.json())
-        except requests.RequestException as e:
+        except cffi_requests.exceptions.RequestException as e:
             raise BeatportUnavailable(str(e))
