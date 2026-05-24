@@ -40,7 +40,7 @@ jobs:
         pip install -r requirements.txt
         
     - name: Verify installed packages
-      run: pip show requests_html
+      run: pip show flask gunicorn
 
     - name: Run fast tests
       env:

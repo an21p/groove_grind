@@ -7,6 +7,15 @@ import os
 
 load_dotenv()
 
+# Optional outbound proxy (e.g. a residential proxy) to bypass datacenter-IP
+# blocks if the official API is ever 403'd from Azure. requests honors
+# HTTP(S)_PROXY natively, so map the single BEATPORT_PROXY knob onto them.
+# No-op when unset.
+_proxy = os.environ.get("BEATPORT_PROXY")
+if _proxy:
+    os.environ["HTTP_PROXY"] = _proxy
+    os.environ["HTTPS_PROXY"] = _proxy
+
 app = Flask(__name__)
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
 
