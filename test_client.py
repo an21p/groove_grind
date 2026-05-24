@@ -1,5 +1,5 @@
 import unittest
-import requests
+from curl_cffi.requests import exceptions as cffi_exc
 from beatport.client import BeatportClient
 from beatport.errors import BeatportRateLimited, BeatportUnavailable, BeatportAuthError
 from _testsupport import FakeResponse, single_session_factory
@@ -101,7 +101,7 @@ class ClientErrorMappingTest(unittest.TestCase):
 
     def test_network_error_raises_unavailable(self):
         def boom(**kw):
-            raise requests.ConnectionError("down")
+            raise cffi_exc.ConnectionError("down")
         c, _ = client_for([("GET", "/catalog/search/", boom)])
         with self.assertRaises(BeatportUnavailable):
             c.search("x")

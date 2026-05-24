@@ -1,5 +1,5 @@
 import unittest
-import requests
+from curl_cffi.requests import exceptions as cffi_exc
 from beatport.auth import TokenManager
 from beatport.errors import BeatportAuthError, BeatportUnavailable
 from _testsupport import FakeResponse, single_session_factory
@@ -66,8 +66,8 @@ class TokenManagerTest(unittest.TestCase):
                 headers = {}
                 def __enter__(self): return self
                 def __exit__(self, *a): return False
-                def post(self, *a, **k): raise requests.RequestException("down")
-                def get(self, *a, **k): raise requests.RequestException("down")
+                def post(self, *a, **k): raise cffi_exc.RequestException("down")
+                def get(self, *a, **k): raise cffi_exc.RequestException("down")
             return S()
         mgr = TokenManager("u", "p", "cid", session_factory=boom, clock=lambda: 1000.0)
         with self.assertRaises(BeatportUnavailable):
