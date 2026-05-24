@@ -1,3 +1,5 @@
+from .auth import TokenManager
+from .client import BeatportClient
 from .errors import (
     BeatportError,
     BeatportUnavailable,
@@ -6,6 +8,8 @@ from .errors import (
 )
 
 __all__ = [
+    "TokenManager",
+    "BeatportClient",
     "BeatportError",
     "BeatportUnavailable",
     "BeatportRateLimited",
