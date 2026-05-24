@@ -1,4 +1,5 @@
 import logging
+import os
 import threading
 import time
 from urllib.parse import urlparse, parse_qs
@@ -19,14 +20,19 @@ HTTP_TIMEOUT = 30
 HEADERS = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
 
 # Beatport sits behind Cloudflare, which 403s stock requests/urllib3's TLS
-# fingerprint from datacenter IPs (e.g. Azure) while letting browsers/curl
-# through. curl_cffi impersonates a real browser's TLS handshake, so our
-# requests are not flagged. This is the production fix for the Azure 403.
-IMPERSONATE = "chrome"
+# fingerprint from datacenter IPs (e.g. Azure). curl_cffi lets us present a
+# different TLS fingerprint. Empirically a browser fingerprint ("chrome") is
+# ALSO flagged from Azure, while a plain (non-browser) libcurl fingerprint —
+# like the system curl that passed in probes — is not. So the default is no
+# impersonation. Override via the BEATPORT_IMPERSONATE env var (e.g. "chrome",
+# "safari", "firefox") + a restart, without redeploying.
+IMPERSONATE = os.environ.get("BEATPORT_IMPERSONATE", "").strip()
 
 
 def default_session():
-    return cffi_requests.Session(impersonate=IMPERSONATE)
+    if IMPERSONATE:
+        return cffi_requests.Session(impersonate=IMPERSONATE)
+    return cffi_requests.Session()
 
 
 class TokenManager:
