@@ -105,13 +105,6 @@ class DefaultJSONEncoder(JSONEncoder):
 
 class Beatport:
     def __init__(self, key=None):
-        self.__key = self.unlock() if key is None else key
-        self.__tracks_link = 'https://www.beatport.com/_next/data/{key}/en/genre/{slug}/{id}/tracks.json'
-        self.__artist_track_link = 'https://www.beatport.com/_next/data/{key}/en/artist/{slug}/{id}/tracks.json'
-        self.__artist_link = 'https://www.beatport.com/_next/data/{key}/en/artist/{slug}/{id}.json'
-        self.__label_link = 'https://www.beatport.com/_next/data/{key}/en/label/{slug}/{id}.json'
-        self.__label_track_link = 'https://www.beatport.com/_next/data/{key}/en/label/{slug}/{id}/tracks.json'
-        self.__search_link = 'https://www.beatport.com/_next/data/{key}/en/search.json'
         self.__headers =  {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:132.0) Gecko/20100101 Firefox/132.0',
             'Accept': '*/*',
@@ -119,6 +112,13 @@ class Beatport:
             # 'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Referer': 'https://www.beatport.com/'
         }
+        self.__key = self.unlock() if key is None else key
+        self.__tracks_link = 'https://www.beatport.com/_next/data/{key}/en/genre/{slug}/{id}/tracks.json'
+        self.__artist_track_link = 'https://www.beatport.com/_next/data/{key}/en/artist/{slug}/{id}/tracks.json'
+        self.__artist_link = 'https://www.beatport.com/_next/data/{key}/en/artist/{slug}/{id}.json'
+        self.__label_link = 'https://www.beatport.com/_next/data/{key}/en/label/{slug}/{id}.json'
+        self.__label_track_link = 'https://www.beatport.com/_next/data/{key}/en/label/{slug}/{id}/tracks.json'
+        self.__search_link = 'https://www.beatport.com/_next/data/{key}/en/search.json'
     def __repr__(self):
         return f"Beatport [{self.__key}]"
     def get_key(self):
@@ -127,8 +127,21 @@ class Beatport:
         print('unlocking')
         uri = 'https://www.beatport.com'
         pattern = 'src\=\"\/_next\/static\/(.+?)\/_buildManifest\.js'
+        # Send full browser-like headers for the homepage HTML fetch. The data
+        # endpoints already send a UA; unlock() previously sent none, which gets
+        # flagged by Beatport's bot protection (HTTP 403).
+        headers = {
+            **self.__headers,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-GB,en;q=0.5',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+        }
         session = HTMLSession()
-        r = session.get(uri)
+        r = session.get(uri, headers=headers)
         compiled = compile(pattern)
         ms = compiled.search(r.text)
         if ms is None:
