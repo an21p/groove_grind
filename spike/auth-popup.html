@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <body>
+    <button id="go">Open Beatport login popup</button>
+    <pre id="log"></pre>
+    <script>
+      const CID = '0GIvkCltVIuPkkwSJHp6NDb3s0potTjLBQr388Dd';
+      const RURI = 'https://api.beatport.com/v4/auth/o/post-message/';
+      const log = (...a) =>
+        (document.getElementById('log').textContent +=
+          a.map((x) => (typeof x === 'object' ? JSON.stringify(x) : x)).join(' ') + '\n');
+      window.addEventListener('message', (e) =>
+        log('message FROM origin=', e.origin, ' data=', e.data),
+      );
+      document.getElementById('go').onclick = () => {
+        const u = new URL('https://api.beatport.com/v4/auth/o/authorize/');
+        u.searchParams.set('response_type', 'code');
+        u.searchParams.set('client_id', CID);
+        u.searchParams.set('redirect_uri', RURI);
+        window.open(u.toString(), 'bp', 'width=480,height=720');
+      };
+    </script>
+  </body>
+</html>
