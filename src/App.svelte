@@ -355,10 +355,15 @@
 						You'll paste a bare token that expires in ~10 minutes — you'll re-run the command when it lapses. Turn on auto-refresh to avoid that.
 					{/if}
 				</p>
-				<div class="prompt-field" style="margin-top:1rem;">
-					<input class="prompt-input" bind:value={manualTokenInput} placeholder={enableRefresh ? 'paste the copied session blob' : 'paste the copied token'} autocomplete="off" spellcheck="false" />
-					<button class="prompt-go ready" on:click={submitManual}><span class="caps">Connect</span><span class="go-arrow">→</span></button>
-				</div>
+				<textarea
+					class="token-input"
+					bind:value={manualTokenInput}
+					rows={enableRefresh ? 6 : 3}
+					placeholder={enableRefresh ? 'paste the logged JSON session here' : 'paste the logged token here'}
+					autocomplete="off"
+					spellcheck="false"
+				></textarea>
+				<button class="prompt-go ready" style="margin-top:0.75rem;" on:click={submitManual}><span class="caps">Connect</span><span class="go-arrow">→</span></button>
 			</div>
 
 			{#if loginError}
@@ -1441,6 +1446,24 @@
 		overflow-x: auto;
 		white-space: pre-wrap;
 	}
+	.token-input {
+		width: 100%;
+		margin-top: 1rem;
+		box-sizing: border-box;
+		font-family: var(--mono);
+		font-size: 12px;
+		line-height: 1.5;
+		color: var(--paper);
+		background: var(--ink-2);
+		border: 1px solid var(--rule);
+		padding: 12px;
+		resize: vertical;
+		white-space: pre;
+		overflow-wrap: normal;
+		overflow-x: auto;
+	}
+	.token-input:focus { outline: none; border-color: var(--oxide); }
+	.token-input::placeholder { color: var(--paper-mute); }
 	.refresh-toggle {
 		display: flex;
 		align-items: center;

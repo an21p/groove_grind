@@ -13,25 +13,23 @@ export const PUBLIC_CLIENT_ID = '0GIvkCltVIuPkkwSJHp6NDb3s0potTjLBQr388Dd';
 // via /api/auth/session — these read it from there.
 //
 // Token-only: paste a bare access token (expires in ~10 min, no auto-refresh).
-export const MANUAL_TOKEN_SNIPPET = `// Run in the devtools console at https://www.beatport.com (logged in):
+export const MANUAL_TOKEN_SNIPPET = `// Run in the devtools console at https://www.beatport.com (logged in),
+// then copy the logged value and paste it into Groove Grind:
 fetch('/api/auth/session', { credentials: 'include' })
   .then((r) => r.json())
-  .then((s) => {
-    const token = s.token.accessToken;
-    copy(token);
-    console.log('Access token (also copied to clipboard):', token);
-  });`;
+  .then((s) => console.log(s.token.accessToken));`;
 
-// Full-session: paste a JSON blob with the refresh token so the app can renew
+// Full-session: logs a JSON blob with the refresh token so the app can renew
 // the short-lived access token without re-pasting.
-export const MANUAL_SESSION_SNIPPET = `// Run in the devtools console at https://www.beatport.com (logged in):
+export const MANUAL_SESSION_SNIPPET = `// Run in the devtools console at https://www.beatport.com (logged in),
+// then copy the logged JSON and paste it into Groove Grind:
 fetch('/api/auth/session', { credentials: 'include' })
   .then((r) => r.json())
-  .then((s) => {
-    const blob = JSON.stringify({ access_token: s.token.accessToken, refresh_token: s.token.refreshToken });
-    copy(blob);
-    console.log('Session blob (also copied to clipboard):', blob);
-  });`;
+  .then((s) =>
+    console.log(
+      JSON.stringify({ access_token: s.token.accessToken, refresh_token: s.token.refreshToken }, null, 2),
+    ),
+  );`;
 
 const EXPIRY_BUFFER_MS = 60_000;
 const STORAGE_KEY = 'groovegrind.token';
