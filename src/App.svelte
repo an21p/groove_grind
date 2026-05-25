@@ -48,6 +48,17 @@
 		manualTokenInput = '';
 	}
 
+	let cmdCopied = false;
+	async function copyCmd() {
+		try {
+			await navigator.clipboard.writeText(manualSnippet);
+			cmdCopied = true;
+			setTimeout(() => (cmdCopied = false), 2000);
+		} catch (_e) {
+			loginError = 'Could not copy automatically — select the command and copy it manually.';
+		}
+	}
+
 	const tweenedTracks = tweened(0, { duration: 500, easing: cubicOut });
 	const tweenedLabels = tweened(0, { duration: 500, easing: cubicOut });
 	const tweenedTop10 = tweened(0, { duration: 700, easing: cubicOut });
@@ -328,6 +339,10 @@
 					<li>Sign in to <strong>beatport.com</strong> in this browser.</li>
 					<li>Open the devtools console (F12) and run this command:</li>
 				</ol>
+				<div class="snippet-head">
+					<span class="caps mute">Console command</span>
+					<button class="copy-btn caps" on:click={copyCmd}>{cmdCopied ? 'Copied ✓' : 'Copy'}</button>
+				</div>
 				<pre class="manual-snippet">{manualSnippet}</pre>
 				<label class="refresh-toggle caps">
 					<input type="checkbox" bind:checked={enableRefresh} />
@@ -1399,6 +1414,23 @@
 
 	.manual-setup { margin-top: 2rem; padding-top: 1.5rem; border-top: var(--rule-thin); }
 	.manual-steps { margin: 1rem 0; padding-left: 1.25rem; color: var(--paper-dim); font-size: 13px; line-height: 1.6; }
+	.snippet-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 6px;
+	}
+	.copy-btn {
+		border: 1px solid var(--rule);
+		background: none;
+		color: var(--paper-dim);
+		padding: 4px 12px;
+		font-size: 10px;
+		letter-spacing: 0.16em;
+		cursor: pointer;
+		transition: color .2s ease, border-color .2s ease;
+	}
+	.copy-btn:hover { color: var(--oxide); border-color: var(--oxide); }
 	.manual-snippet {
 		font-family: var(--mono);
 		font-size: 11px;
