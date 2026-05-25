@@ -110,22 +110,49 @@ Log in as a real Beatport user on beatport.com and observe whether the
 target origin it uses**.
 
 - **Relay posts to our origin (or `*`)** → popup flow confirmed; build on it.
-- **Relay is locked to beatport.com origins** → fall back to the native
-  email/password form: POST `{username, password}` to `/v4/auth/login/`, then
-  `GET /v4/auth/o/authorize/`, then `POST /v4/auth/o/token/` — all CORS-open as
-  verified above. Trade-off: users type their Beatport password into our form
-  (phishing-shaped, breaks under 2FA/CAPTCHA), so this is the fallback only.
+- **Relay is locked to beatport.com origins** → fall back to a **manual token
+  setup** (see below). We do *not* build a native email/password form — we never
+  want users typing their Beatport password into our static site.
+
+The spike's deliverable is therefore one of two things: (a) a working popup
+handshake, or (b) the exact console command for the manual-token fallback. Both
+come out of the same investigation of the live auth surface.
 
 The public client id is the swagger client already hardcoded today:
 `0GIvkCltVIuPkkwSJHp6NDb3s0potTjLBQr388Dd`.
+
+### Fallback: manual token setup
+
+If the popup is unavailable, the app shows a **setup section** instead of a
+one-click connect button:
+
+1. The user signs in to beatport.com in their own browser.
+2. They open the browser devtools console and run a short snippet we provide,
+   which extracts their current Beatport access token (the precise snippet is
+   finalized by the spike — likely either reading the token the beatport.com web
+   app already holds, or a credentialed `fetch` of the authorize/token endpoints
+   against their logged-in session).
+3. They paste the token into the setup field; `auth.ts` stores it and the app
+   works exactly as with the popup.
+
+The setup section must state clearly that **the token expires** (Beatport
+`expires_in` is ~10h). The manual path yields only an `access_token` and **no
+refresh token**, so on expiry the app cannot silently refresh: a 401 surfaces
+the setup section again with a "your token expired — re-run the command" note.
+This timeout is called out in the setup copy so it is not a surprise.
 
 ### `auth.ts` (mirrors `TokenManager`)
 
 - `login()` — runs the popup handshake; resolves with
   `{access_token, refresh_token, expires_in}`.
-- `getToken()` — returns the cached token if unexpired; else refreshes via
-  `POST /v4/auth/o/token/` with `grant_type=refresh_token`; else triggers
-  re-login. Same 60s expiry buffer as today (`EXPIRY_BUFFER_SECONDS`).
+- `setTokenManually(accessToken)` — used by the manual-token fallback. Stores the
+  pasted access token with no refresh token; expiry is unknown so it is treated
+  as valid until a 401 says otherwise.
+- `getToken()` — returns the cached token if unexpired; if a refresh token exists
+  (popup path), refreshes via `POST /v4/auth/o/token/` with
+  `grant_type=refresh_token`; otherwise (manual path) returns the stored token
+  and lets a downstream 401 trigger re-setup. Same 60s expiry buffer as today
+  (`EXPIRY_BUFFER_SECONDS`) when expiry is known.
 - `invalidate()` / `logout()` — clears the access token (and, for logout, the
   refresh token).
 
@@ -211,13 +238,17 @@ Minimal changes to `App.svelte`:
 Login gate — a small component (or block in `App.svelte`) subscribed to the
 `session` store:
 
-- No valid token → a "Connect your Beatport account" button (in the existing
-  masthead aesthetic) that calls `auth.login()`. Search is disabled until
-  connected.
+- No valid token, popup available → a "Connect your Beatport account" button (in
+  the existing masthead aesthetic) that calls `auth.login()`. Search is disabled
+  until connected.
+- No valid token, popup unavailable (manual fallback) → the **setup section**:
+  numbered instructions, the copy-able console command, the token paste field
+  (calling `setTokenManually`), and the explicit token-expiry/timeout note.
 - Valid token → normal app, plus a small "disconnect" affordance (footer/top
   band) calling `logout()`.
-- A 401 mid-session invalidates the token; the store flips and the gate
-  reappears with a "session expired, reconnect" note.
+- A 401 mid-session invalidates the token; the store flips and the gate (or, on
+  the manual path, the setup section) reappears with a "session expired,
+  reconnect" / "re-run the command" note.
 
 Reuses the established editorial design language (Fraunces / JetBrains Mono) and
 existing `.caps`, `.prompt-*`, and button styles — no new visual system.
@@ -257,8 +288,12 @@ The popup handshake itself is verified by the Task 1 spike against the live API
 ## Risks
 
 - **Popup origin lock (primary):** the public `client_id` may only `postMessage`
-  to beatport.com origins. Mitigated by the Task 1 spike and the native-form
-  fallback.
+  to beatport.com origins. Mitigated by the Task 1 spike and the manual-token
+  setup fallback.
+- **Manual-token UX:** the fallback is clunky (devtools console) and the token
+  expires (~10h) with no silent refresh, forcing periodic re-setup. Accepted as
+  a fallback only; the spike must produce a console command that actually works
+  and is as short as possible.
 - **Popup blockers:** `auth.login()` must be triggered by a direct user gesture
   (button click) so the browser allows the popup.
 - **Token in `localStorage`:** XSS exposure, accepted as above.
