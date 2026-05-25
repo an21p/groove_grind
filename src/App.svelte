@@ -81,7 +81,7 @@
 	let artistTop10 = null;
 	let artistLabelByDate = null;
 	let artistTracksByLabel = null;
-	let artistView = 'labels';
+	let artistView = 'top10';
 	let bioExpanded = false;
 
 	// Streaming state for /artist/.../labels (NDJSON)
@@ -147,7 +147,7 @@
 		artistTop10 = null;
 		artistLabelByDate = null;
 		artistTracksByLabel = null;
-		artistView = 'labels';
+		artistView = 'top10';
 		bioExpanded = false;
 		streamingCatalog = true;
 		tracksLoaded = 0;
