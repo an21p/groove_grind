@@ -48,6 +48,12 @@
 		manualTokenInput = '';
 	}
 
+	function clearToken() {
+		logout();
+		loginError = null;
+		manualTokenInput = '';
+	}
+
 	let cmdCopied = false;
 	async function copyCmd() {
 		try {
@@ -297,6 +303,9 @@
 </script>
 
 <div class="frame">
+	{#if connected}
+		<button class="clear-token caps" on:click={clearToken} title="Remove the stored Beatport token from this browser">Clear token</button>
+	{/if}
 	<!-- Top band -->
 	<header class="band">
 		<div class="band-left">
@@ -335,6 +344,16 @@
 			</p>
 
 			<div class="manual-setup">
+				<div class="why-note">
+					<div class="caps mute why-title">Why paste a token?</div>
+					<p>
+						Beatport has no public app API, so Groove &amp; Grind works through your own Beatport session.
+						It used to run on a server with a plain user login — but Beatport now blocks datacenter IPs
+						(our Azure host included) and allows only residential connections, so the catalog has to be
+						fetched locally, here in your browser. Your token is stored only in this browser's
+						<code>localStorage</code>, which other websites can't read.
+					</p>
+				</div>
 				<ol class="manual-steps">
 					<li>Sign in to <strong>beatport.com</strong> in this browser.</li>
 					<li>Open the devtools console (F12) and run this command:</li>
@@ -373,6 +392,8 @@
 				</div>
 			{/if}
 
+			<!-- Popup login disabled: Beatport's post-message relay is locked to its own
+			     origin, so the popup can't return a code to this app. Kept for reference.
 			<div class="prompt-hint" style="margin-top:1.75rem;">
 				<button class="suggest" on:click={() => (showPopupFallback = !showPopupFallback)}>Prefer a popup login? (experimental)</button>
 			</div>
@@ -382,6 +403,8 @@
 					<button class="suggest" style="margin-left:0.5rem;" on:click={connect}>Try popup login</button>
 				</p>
 			{/if}
+			-->
+
 		</section>
 	{/if}
 
@@ -1445,6 +1468,39 @@
 		padding: 12px;
 		overflow-x: auto;
 		white-space: pre-wrap;
+	}
+	.clear-token {
+		position: fixed;
+		top: 12px;
+		right: 16px;
+		z-index: 50;
+		background: var(--ink);
+		border: 1px solid var(--rule);
+		color: var(--paper-dim);
+		padding: 6px 12px;
+		font-size: 10px;
+		letter-spacing: 0.16em;
+		cursor: pointer;
+		transition: color .2s ease, border-color .2s ease;
+	}
+	.clear-token:hover { color: var(--oxide); border-color: var(--oxide); }
+	.why-note {
+		margin-bottom: 1.5rem;
+		padding: 14px 16px;
+		border: 1px solid var(--rule);
+		background: var(--ink-2);
+	}
+	.why-title { margin-bottom: 8px; }
+	.why-note p {
+		margin: 0;
+		font-size: 13px;
+		line-height: 1.6;
+		color: var(--paper-dim);
+	}
+	.why-note code {
+		font-family: var(--mono);
+		font-size: 11px;
+		color: var(--paper);
 	}
 	.token-input {
 		width: 100%;
