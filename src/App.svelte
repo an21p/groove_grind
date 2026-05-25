@@ -82,6 +82,7 @@
 	let artistLabelByDate = null;
 	let artistTracksByLabel = null;
 	let artistView = 'labels';
+	let bioExpanded = false;
 
 	// Streaming state for /artist/.../labels (NDJSON)
 	let streamingCatalog = false;
@@ -147,6 +148,7 @@
 		artistLabelByDate = null;
 		artistTracksByLabel = null;
 		artistView = 'labels';
+		bioExpanded = false;
 		streamingCatalog = true;
 		tracksLoaded = 0;
 		progressiveCatalog = [];
@@ -551,7 +553,14 @@
 						<em>{artist.name}</em>
 					</h1>
 					{#if artist.bio}
-						<p class="dossier-bio">{artist.bio}</p>
+						<p class="dossier-bio">
+							{bioExpanded || artist.bio.length <= 150 ? artist.bio : artist.bio.slice(0, 150).trim() + '… '}
+							{#if artist.bio.length > 150}
+								<button class="read-more caps" on:click={() => (bioExpanded = !bioExpanded)}>
+									{bioExpanded ? 'Read less' : 'Read more'}
+								</button>
+							{/if}
+						</p>
 					{/if}
 				</div>
 				<aside class="dossier-portrait">
@@ -1070,6 +1079,19 @@
 		max-width: var(--measure);
 		opacity: .9;
 	}
+	.read-more {
+		background: none;
+		border: none;
+		padding: 0;
+		margin-left: 2px;
+		font-family: var(--mono);
+		font-size: 10px;
+		letter-spacing: 0.16em;
+		color: var(--oxide);
+		cursor: pointer;
+		white-space: nowrap;
+	}
+	.read-more:hover { text-decoration: underline; }
 	.dossier-portrait { padding-top: 2.5rem; }
 	.dossier-portrait img {
 		width: 100%;
