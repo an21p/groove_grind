@@ -16,7 +16,11 @@ export const PUBLIC_CLIENT_ID = '0GIvkCltVIuPkkwSJHp6NDb3s0potTjLBQr388Dd';
 export const MANUAL_TOKEN_SNIPPET = `// Run in the devtools console at https://www.beatport.com (logged in):
 fetch('/api/auth/session', { credentials: 'include' })
   .then((r) => r.json())
-  .then((s) => { copy(s.token.accessToken); console.log('Access token copied.'); });`;
+  .then((s) => {
+    const token = s.token.accessToken;
+    copy(token);
+    console.log('Access token (also copied to clipboard):', token);
+  });`;
 
 // Full-session: paste a JSON blob with the refresh token so the app can renew
 // the short-lived access token without re-pasting.
@@ -24,8 +28,9 @@ export const MANUAL_SESSION_SNIPPET = `// Run in the devtools console at https:/
 fetch('/api/auth/session', { credentials: 'include' })
   .then((r) => r.json())
   .then((s) => {
-    copy(JSON.stringify({ access_token: s.token.accessToken, refresh_token: s.token.refreshToken }));
-    console.log('Session copied — paste it into Groove Grind.');
+    const blob = JSON.stringify({ access_token: s.token.accessToken, refresh_token: s.token.refreshToken });
+    copy(blob);
+    console.log('Session blob (also copied to clipboard):', blob);
   });`;
 
 const EXPIRY_BUFFER_MS = 60_000;
