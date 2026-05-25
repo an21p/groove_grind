@@ -147,6 +147,9 @@
 		} else if (evt.type === 'error') {
 			streamError = evt.message || 'Beatport is temporarily unavailable. Please try again in a moment.';
 			streamingCatalog = false;
+			// streamArtist emits auth failures as events (never throws), so the gate
+			// must be re-shown from here, not from openArtist's outer catch.
+			if (evt.code === 'auth') refreshSession();
 		}
 	}
 
