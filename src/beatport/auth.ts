@@ -7,6 +7,12 @@ export const AUTHORIZE_URL = `${API_BASE}/auth/o/authorize/`;
 export const REDIRECT_URI = `${API_BASE}/auth/o/post-message/`;
 export const PUBLIC_CLIENT_ID = '0GIvkCltVIuPkkwSJHp6NDb3s0potTjLBQr388Dd';
 
+// Console command for the manual-token fallback. Finalized by the Task 1 spike;
+// shown to users in the setup section when the popup is unavailable.
+export const MANUAL_TOKEN_SNIPPET = `// Run this in the devtools console at https://www.beatport.com while logged in:
+copy(JSON.parse(localStorage.getItem('persist:user') || '{}').access_token);
+console.log('Access token copied to clipboard (if present).');`;
+
 const EXPIRY_BUFFER_MS = 60_000;
 const STORAGE_KEY = 'groovegrind.token';
 
@@ -97,5 +103,68 @@ export class AuthManager implements TokenProvider {
   logout(): void {
     this.token = null;
     this.save();
+  }
+
+  async login(): Promise<void> {
+    const code = await this.runPopup();
+    await this.exchangeCode(code);
+  }
+
+  private runPopup(): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      const url = new URL(AUTHORIZE_URL);
+      url.searchParams.set('response_type', 'code');
+      url.searchParams.set('client_id', this.clientId);
+      url.searchParams.set('redirect_uri', REDIRECT_URI);
+      const popup = window.open(url.toString(), 'beatport_login', 'width=480,height=720');
+      if (!popup) {
+        reject(new BeatportAuthError('popup blocked'));
+        return;
+      }
+      const onMessage = (ev: MessageEvent) => {
+        // SPIKE-CONFIRMED: validate the relay's exact origin here.
+        if (ev.origin !== 'https://api.beatport.com') return;
+        const data = (ev.data || {}) as { code?: string; error?: string };
+        if (data.code) {
+          cleanup();
+          resolve(data.code);
+        } else if (data.error) {
+          cleanup();
+          reject(new BeatportAuthError(String(data.error)));
+        }
+      };
+      const timer = setInterval(() => {
+        if (popup.closed) {
+          cleanup();
+          reject(new BeatportAuthError('login cancelled'));
+        }
+      }, 500);
+      const cleanup = () => {
+        window.removeEventListener('message', onMessage);
+        clearInterval(timer);
+        try {
+          popup.close();
+        } catch {
+          /* ignore */
+        }
+      };
+      window.addEventListener('message', onMessage);
+    });
+  }
+
+  private async exchangeCode(code: string): Promise<void> {
+    const url = new URL(TOKEN_URL);
+    url.searchParams.set('code', code);
+    url.searchParams.set('grant_type', 'authorization_code');
+    url.searchParams.set('redirect_uri', REDIRECT_URI);
+    url.searchParams.set('client_id', this.clientId);
+    let res: Response;
+    try {
+      res = await fetch(url.toString(), { method: 'POST', headers: { Accept: 'application/json' } });
+    } catch (e) {
+      throw new BeatportUnavailable(String(e));
+    }
+    if (res.status !== 200) throw new BeatportAuthError(`token exchange failed: HTTP ${res.status}`);
+    this.store(await res.json());
   }
 }

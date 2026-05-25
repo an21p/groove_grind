@@ -71,3 +71,30 @@ describe('AuthManager', () => {
     expect(storage.getItem('groovegrind.token')).toBeNull();
   });
 });
+
+describe('AuthManager.login (popup)', () => {
+  it('resolves a code via postMessage and exchanges it for a token', async () => {
+    let t = 0;
+    const a = new AuthManager('cid', memStorage(), () => t);
+
+    const popup = { closed: false, close: vi.fn() };
+    vi.stubGlobal('open', vi.fn(() => popup));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        status: 200,
+        json: async () => ({ access_token: 'X', refresh_token: 'RX', expires_in: 100 }),
+      })),
+    );
+
+    const p = a.login();
+    // Simulate the relay posting the code back to our window.
+    window.dispatchEvent(
+      new MessageEvent('message', { origin: 'https://api.beatport.com', data: { code: 'CODE123' } }),
+    );
+    await p;
+
+    expect(a.isAuthenticated()).toBe(true);
+    expect(await a.getToken()).toBe('X');
+  });
+});
