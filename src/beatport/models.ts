@@ -64,7 +64,7 @@ export function trackFromApi(data: any): Track {
     artists: (data.artists || []).map(artistFromApi),
     remixers: (data.remixers || []).map(artistFromApi),
     label,
-    image: img(data) || img(release),
+    image: img(release) || img(data), // album cover first, waveform only as fallback
     sample: data.sample_url || '',
     release_date: data.new_release_date || '',
   };

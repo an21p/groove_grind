@@ -554,8 +554,8 @@
 					</h1>
 					{#if artist.bio}
 						<p class="dossier-bio">
-							{bioExpanded || artist.bio.length <= 150 ? artist.bio : artist.bio.slice(0, 150).trim() + '… '}
-							{#if artist.bio.length > 150}
+							{bioExpanded || artist.bio.length <= 400 ? artist.bio : artist.bio.slice(0, 400).trim() + '… '}
+							{#if artist.bio.length > 400}
 								<button class="read-more caps" on:click={() => (bioExpanded = !bioExpanded)}>
 									{bioExpanded ? 'Read less' : 'Read more'}
 								</button>

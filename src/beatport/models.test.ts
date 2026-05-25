@@ -18,14 +18,19 @@ describe('models', () => {
       remixers: [{ id: 2, name: 'R' }],
       sample_url: 'http://x/s.mp3',
       new_release_date: '2021-01-01',
+      image: { uri: 'http://x/waveform.jpg' }, // track image = waveform
       release: { label: { id: 5, name: 'Lbl' }, image: { uri: 'http://x/cover.jpg' } },
     });
     expect(t.sample).toBe('http://x/s.mp3');
     expect(t.release_date).toBe('2021-01-01');
     expect(t.label.name).toBe('Lbl');
-    expect(t.image).toBe('http://x/cover.jpg');
+    expect(t.image).toBe('http://x/cover.jpg'); // prefers album cover over waveform
     expect(t.artists[0].name).toBe('A');
     expect(t.remixers[0].name).toBe('R');
+  });
+  it('trackFromApi falls back to the track image when the release has no cover', () => {
+    const t = trackFromApi({ id: 9, name: 'Trk', image: { uri: 'http://x/wave.jpg' }, release: {} });
+    expect(t.image).toBe('http://x/wave.jpg');
   });
   it('trackFromApi falls back to empty label when release has none', () => {
     const t = trackFromApi({ id: 9, name: 'Trk', release: {} });
