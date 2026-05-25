@@ -1,11 +1,9 @@
 import logging
-import os
 import threading
 import time
 from urllib.parse import urlparse, parse_qs
 
-from curl_cffi import requests as cffi_requests
-
+from .curl_transport import CurlError, default_session
 from .errors import BeatportAuthError, BeatportUnavailable
 
 logger = logging.getLogger(__name__)
@@ -18,21 +16,6 @@ REDIRECT_URI = f"{API_BASE}/auth/o/post-message/"
 EXPIRY_BUFFER_SECONDS = 60
 HTTP_TIMEOUT = 30
 HEADERS = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
-
-# Beatport sits behind Cloudflare, which 403s stock requests/urllib3's TLS
-# fingerprint from datacenter IPs (e.g. Azure). curl_cffi lets us present a
-# different TLS fingerprint. Empirically a browser fingerprint ("chrome") is
-# ALSO flagged from Azure, while a plain (non-browser) libcurl fingerprint —
-# like the system curl that passed in probes — is not. So the default is no
-# impersonation. Override via the BEATPORT_IMPERSONATE env var (e.g. "chrome",
-# "safari", "firefox") + a restart, without redeploying.
-IMPERSONATE = os.environ.get("BEATPORT_IMPERSONATE", "").strip()
-
-
-def default_session():
-    if IMPERSONATE:
-        return cffi_requests.Session(impersonate=IMPERSONATE)
-    return cffi_requests.Session()
 
 
 class TokenManager:
@@ -83,7 +66,7 @@ class TokenManager:
                     "refresh_token": self._refresh_token,
                     "client_id": self._client_id,
                 }, timeout=HTTP_TIMEOUT)
-        except cffi_requests.exceptions.RequestException as e:
+        except CurlError as e:
             raise BeatportUnavailable(str(e))
         if r.status_code != 200 or "access_token" not in r.text:
             raise BeatportAuthError(f"refresh failed: HTTP {r.status_code}")
@@ -120,5 +103,5 @@ class TokenManager:
                 if r.status_code != 200 or "access_token" not in r.text:
                     raise BeatportAuthError(f"token exchange failed: HTTP {r.status_code}")
                 self._store(r.json())
-        except cffi_requests.exceptions.RequestException as e:
+        except CurlError as e:
             raise BeatportUnavailable(str(e))
