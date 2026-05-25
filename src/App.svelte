@@ -354,7 +354,7 @@
 					</p>
 				</div>
 				<ol class="manual-steps">
-					<li>Sign in to <strong>beatport.com</strong> in this browser.</li>
+					<li>Sign in to <a class="bp-link" href="https://www.beatport.com" target="_blank" rel="noopener">beatport.com</a> in this browser.</li>
 					<li>Open the devtools console (F12) and run this command:</li>
 				</ol>
 				<div class="snippet-head">
@@ -1525,6 +1525,12 @@
 		font-size: 11px;
 		color: var(--paper);
 	}
+	.bp-link {
+		color: var(--oxide);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+	.bp-link:hover { opacity: 0.8; }
 	.token-input {
 		width: 100%;
 		margin-top: 1rem;
