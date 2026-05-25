@@ -2,30 +2,49 @@
 	import { onMount } from 'svelte';
 	import { tweened } from 'svelte/motion';
 	import { cubicOut } from 'svelte/easing';
-	import { client, session, loginPopup, setManualToken, logout, refreshSession, manualTokenSnippet } from './stores/session';
+	import { client, session, loginPopup, setManualToken, setManualSession, logout, refreshSession, manualTokenSnippet, manualSessionSnippet } from './stores/session';
 	import { streamArtist } from './beatport/catalog';
 
 	let connected = false;
 	const unsubSession = session.subscribe((s) => (connected = s.connected));
 
-	// Login-gate UI state
-	let showManualSetup = false;
+	// Login-gate UI state. The popup relay is locked to beatport.com's origin, so
+	// the manual /api/auth/session path is primary; the popup is a fallback.
 	let manualTokenInput = '';
+	let enableRefresh = true;
 	let loginError = null;
+	let showPopupFallback = false;
+
+	$: manualSnippet = enableRefresh ? manualSessionSnippet : manualTokenSnippet;
 
 	async function connect() {
 		loginError = null;
 		try {
 			await loginPopup();
 		} catch (e) {
-			loginError = (e && e.userMessage) || 'Could not connect. Try the manual setup below.';
-			showManualSetup = true;
+			loginError = (e && e.userMessage) || 'Popup login did not complete. Use the manual setup above.';
 		}
 	}
 
-	function submitManualToken() {
-		if (!manualTokenInput.trim()) return;
-		setManualToken(manualTokenInput.trim());
+	function submitManual() {
+		const v = manualTokenInput.trim();
+		if (!v) return;
+		loginError = null;
+		if (enableRefresh) {
+			let parsed;
+			try {
+				parsed = JSON.parse(v);
+			} catch (_) {
+				parsed = null;
+			}
+			if (!parsed || !parsed.access_token) {
+				loginError = "That doesn't look like a session blob. With auto-refresh on, paste the full output of the command (a {access_token, refresh_token} object).";
+				return;
+			}
+			setManualSession(parsed.access_token, parsed.refresh_token || '');
+		} else {
+			setManualToken(v);
+		}
 		manualTokenInput = '';
 	}
 
@@ -291,7 +310,7 @@
 		</div>
 	</section>
 
-	<!-- Search hero / prompt -->
+	<!-- Connect gate (manual /api/auth/session path is primary) -->
 	{#if !artist && !connected}
 		<section class="hero gate">
 			<div class="prompt-line">
@@ -301,32 +320,47 @@
 			</div>
 			<h2 class="section-title" style="margin-top:1rem;">Connect your <em>Beatport</em> account to dig</h2>
 			<p class="dossier-bio" style="margin-top:1rem;">
-				Groove &amp; Grind reads the Beatport catalog from your browser, on your connection — nothing runs on a server.
+				Groove &amp; Grind reads the Beatport catalog from your browser, on your connection — nothing runs on a server. Hand it a token from your Beatport session:
 			</p>
-			<div class="prompt-hint" style="margin-top:1.5rem;">
-				<button class="prompt-go ready" on:click={connect}><span class="caps">Connect Beatport</span><span class="go-arrow">→</span></button>
-				<button class="suggest" on:click={() => (showManualSetup = !showManualSetup)}>Can't use the popup? Manual setup</button>
+
+			<div class="manual-setup">
+				<ol class="manual-steps">
+					<li>Sign in to <strong>beatport.com</strong> in this browser.</li>
+					<li>Open the devtools console (F12) and run this command:</li>
+				</ol>
+				<pre class="manual-snippet">{manualSnippet}</pre>
+				<label class="refresh-toggle caps">
+					<input type="checkbox" bind:checked={enableRefresh} />
+					Keep me signed in (auto-refresh)
+				</label>
+				<p class="caps mute refresh-note">
+					{#if enableRefresh}
+						Beatport's web token lasts only ~10 minutes; with auto-refresh on, the app renews it for you using the refresh token. If Beatport declines the refresh, you'll be asked to run the command again.
+					{:else}
+						You'll paste a bare token that expires in ~10 minutes — you'll re-run the command when it lapses. Turn on auto-refresh to avoid that.
+					{/if}
+				</p>
+				<div class="prompt-field" style="margin-top:1rem;">
+					<input class="prompt-input" bind:value={manualTokenInput} placeholder={enableRefresh ? 'paste the copied session blob' : 'paste the copied token'} autocomplete="off" spellcheck="false" />
+					<button class="prompt-go ready" on:click={submitManual}><span class="caps">Connect</span><span class="go-arrow">→</span></button>
+				</div>
 			</div>
+
 			{#if loginError}
 				<div class="stream-error caps" style="margin-top:1.25rem;" role="alert">
 					<span class="stream-error-label">Connection problem</span>
 					<span class="stream-error-msg">{loginError}</span>
 				</div>
 			{/if}
-			{#if showManualSetup}
-				<div class="manual-setup">
-					<div class="caps mute">Manual token setup</div>
-					<ol class="manual-steps">
-						<li>Sign in to beatport.com in this browser.</li>
-						<li>Open the devtools console and run this command:</li>
-					</ol>
-					<pre class="manual-snippet">{manualTokenSnippet}</pre>
-					<p class="caps mute">Paste the resulting token below. Note: the token expires (about 10 hours) — when it does, you'll be asked to run the command again.</p>
-					<div class="prompt-field" style="margin-top:1rem;">
-						<input class="prompt-input" bind:value={manualTokenInput} placeholder="paste your Beatport token" autocomplete="off" spellcheck="false" />
-						<button class="prompt-go ready" on:click={submitManualToken}><span class="caps">Save</span><span class="go-arrow">→</span></button>
-					</div>
-				</div>
+
+			<div class="prompt-hint" style="margin-top:1.75rem;">
+				<button class="suggest" on:click={() => (showPopupFallback = !showPopupFallback)}>Prefer a popup login? (experimental)</button>
+			</div>
+			{#if showPopupFallback}
+				<p class="caps mute" style="margin-top:0.75rem;">
+					Beatport may block the popup from returning to this site. If it hangs, use the console method above.
+					<button class="suggest" style="margin-left:0.5rem;" on:click={connect}>Try popup login</button>
+				</p>
 			{/if}
 		</section>
 	{/if}
@@ -1375,6 +1409,16 @@
 		overflow-x: auto;
 		white-space: pre-wrap;
 	}
+	.refresh-toggle {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-top: 1rem;
+		color: var(--paper-dim);
+		cursor: pointer;
+	}
+	.refresh-toggle input { accent-color: var(--oxide); cursor: pointer; }
+	.refresh-note { margin-top: 0.75rem; text-transform: none; line-height: 1.6; }
 	.disconnect { background: none; border: none; cursor: pointer; }
 	.disconnect:hover { color: var(--oxide); }
 

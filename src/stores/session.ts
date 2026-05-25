@@ -1,10 +1,11 @@
 import { writable } from 'svelte/store';
-import { AuthManager, MANUAL_TOKEN_SNIPPET } from '../beatport/auth';
+import { AuthManager, MANUAL_TOKEN_SNIPPET, MANUAL_SESSION_SNIPPET } from '../beatport/auth';
 import { BeatportClient } from '../beatport/client';
 
 export const auth = new AuthManager();
 export const client = new BeatportClient(auth);
 export const manualTokenSnippet = MANUAL_TOKEN_SNIPPET;
+export const manualSessionSnippet = MANUAL_SESSION_SNIPPET;
 
 export const session = writable<{ connected: boolean }>({ connected: auth.isAuthenticated() });
 
@@ -19,6 +20,11 @@ export async function loginPopup(): Promise<void> {
 
 export function setManualToken(token: string): void {
   auth.setTokenManually(token.trim());
+  sync();
+}
+
+export function setManualSession(accessToken: string, refreshToken: string): void {
+  auth.setSessionManually(accessToken.trim(), refreshToken.trim());
   sync();
 }
 

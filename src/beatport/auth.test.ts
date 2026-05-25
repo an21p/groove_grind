@@ -72,6 +72,47 @@ describe('AuthManager', () => {
   });
 });
 
+function makeJwt(payload: object): string {
+  const b64 = (o: any) =>
+    btoa(JSON.stringify(o)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  return `${b64({ alg: 'RS256', typ: 'JWT' })}.${b64(payload)}.sig`;
+}
+
+describe('AuthManager.setSessionManually (refresh path)', () => {
+  beforeEach(() => vi.unstubAllGlobals());
+
+  it('decodes expiry + client_id from the JWT and refreshes with that client_id', async () => {
+    let t = 1_000_000;
+    const a = new AuthManager('swaggerCID', memStorage(), () => t);
+    const jwt = makeJwt({ exp: Math.floor(t / 1000) + 600, client_id: 'webCID' });
+    a.setSessionManually(jwt, 'RT');
+    expect(a.isAuthenticated()).toBe(true);
+    expect(await a.getToken()).toBe(jwt); // still valid -> returned as-is
+
+    t += 700_000; // advance past expiry
+    let usedClientId: string | null = null;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        usedClientId = new URL(url).searchParams.get('client_id');
+        return { status: 200, json: async () => ({ access_token: 'NEW', expires_in: 600 }) };
+      }),
+    );
+    expect(await a.getToken()).toBe('NEW');
+    expect(usedClientId).toBe('webCID'); // not the swagger client
+  });
+
+  it('surfaces an auth error (re-paste) when the refresh is rejected', async () => {
+    let t = 0;
+    const a = new AuthManager('swaggerCID', memStorage(), () => t);
+    const jwt = makeJwt({ exp: 1, client_id: 'webCID' }); // already expired
+    a.setSessionManually(jwt, 'RT');
+    t = 10_000_000;
+    vi.stubGlobal('fetch', vi.fn(async () => ({ status: 401, json: async () => ({}) })));
+    await expect(a.getToken()).rejects.toBeInstanceOf(BeatportAuthError);
+  });
+});
+
 describe('AuthManager.login (popup)', () => {
   it('resolves a code via postMessage and exchanges it for a token', async () => {
     let t = 0;

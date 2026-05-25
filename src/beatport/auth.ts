@@ -7,11 +7,26 @@ export const AUTHORIZE_URL = `${API_BASE}/auth/o/authorize/`;
 export const REDIRECT_URI = `${API_BASE}/auth/o/post-message/`;
 export const PUBLIC_CLIENT_ID = '0GIvkCltVIuPkkwSJHp6NDb3s0potTjLBQr388Dd';
 
-// Console command for the manual-token fallback. Finalized by the Task 1 spike;
-// shown to users in the setup section when the popup is unavailable.
-export const MANUAL_TOKEN_SNIPPET = `// Run this in the devtools console at https://www.beatport.com while logged in:
-copy(JSON.parse(localStorage.getItem('persist:user') || '{}').access_token);
-console.log('Access token copied to clipboard (if present).');`;
+// Console commands for the manual-token fallback (the popup relay is locked to
+// beatport.com's own origin, so the popup flow can't return a code to our app).
+// beatport.com authenticates with NextAuth and exposes the live Beatport token
+// via /api/auth/session — these read it from there.
+//
+// Token-only: paste a bare access token (expires in ~10 min, no auto-refresh).
+export const MANUAL_TOKEN_SNIPPET = `// Run in the devtools console at https://www.beatport.com (logged in):
+fetch('/api/auth/session', { credentials: 'include' })
+  .then((r) => r.json())
+  .then((s) => { copy(s.token.accessToken); console.log('Access token copied.'); });`;
+
+// Full-session: paste a JSON blob with the refresh token so the app can renew
+// the short-lived access token without re-pasting.
+export const MANUAL_SESSION_SNIPPET = `// Run in the devtools console at https://www.beatport.com (logged in):
+fetch('/api/auth/session', { credentials: 'include' })
+  .then((r) => r.json())
+  .then((s) => {
+    copy(JSON.stringify({ access_token: s.token.accessToken, refresh_token: s.token.refreshToken }));
+    console.log('Session copied — paste it into Groove Grind.');
+  });`;
 
 const EXPIRY_BUFFER_MS = 60_000;
 const STORAGE_KEY = 'groovegrind.token';
@@ -19,7 +34,21 @@ const STORAGE_KEY = 'groovegrind.token';
 interface StoredToken {
   access_token: string;
   refresh_token: string | null;
-  expiry: number | null; // epoch ms; null = unknown (manual path)
+  expiry: number | null; // epoch ms; null = unknown (manual token-only path)
+  client_id: string | null; // client to use for refresh (null = manager default)
+}
+
+// Best-effort decode of a JWT payload (base64url). Returns {} on any failure.
+function decodeJwt(token: string): any {
+  try {
+    const part = token.split('.')[1];
+    if (!part) return {};
+    const b64 = part.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = b64.length % 4 ? '='.repeat(4 - (b64.length % 4)) : '';
+    return JSON.parse(atob(b64 + pad));
+  } catch {
+    return {};
+  }
 }
 
 export class AuthManager implements TokenProvider {
@@ -53,12 +82,27 @@ export class AuthManager implements TokenProvider {
       access_token: data.access_token,
       refresh_token: data.refresh_token ?? this.token?.refresh_token ?? null,
       expiry: this.now() + expiresIn * 1000 - EXPIRY_BUFFER_MS,
+      client_id: this.token?.client_id ?? null,
     };
     this.save();
   }
 
   setTokenManually(accessToken: string): void {
-    this.token = { access_token: accessToken, refresh_token: null, expiry: null };
+    this.token = { access_token: accessToken, refresh_token: null, expiry: null, client_id: null };
+    this.save();
+  }
+
+  // Manual full-session path: store the access + refresh token from beatport.com's
+  // /api/auth/session. Expiry and the refresh client_id are read from the JWT so
+  // the app can renew the short-lived token against the API.
+  setSessionManually(accessToken: string, refreshToken: string): void {
+    const claims = decodeJwt(accessToken);
+    this.token = {
+      access_token: accessToken,
+      refresh_token: refreshToken || null,
+      expiry: typeof claims.exp === 'number' ? claims.exp * 1000 - EXPIRY_BUFFER_MS : null,
+      client_id: typeof claims.client_id === 'string' ? claims.client_id : null,
+    };
     this.save();
   }
 
@@ -81,7 +125,7 @@ export class AuthManager implements TokenProvider {
     const url = new URL(TOKEN_URL);
     url.searchParams.set('grant_type', 'refresh_token');
     url.searchParams.set('refresh_token', this.token!.refresh_token!);
-    url.searchParams.set('client_id', this.clientId);
+    url.searchParams.set('client_id', this.token!.client_id ?? this.clientId);
     let res: Response;
     try {
       res = await fetch(url.toString(), { method: 'POST', headers: { Accept: 'application/json' } });
@@ -122,7 +166,10 @@ export class AuthManager implements TokenProvider {
         return;
       }
       const onMessage = (ev: MessageEvent) => {
-        // SPIKE-CONFIRMED: validate the relay's exact origin here.
+        // Spike result: the post-message relay is locked to beatport.com's own
+        // origin and does not post back to a third-party origin, so this popup
+        // path is a non-functional fallback retained for completeness. The
+        // manual /api/auth/session path is primary. Origin guard kept regardless.
         if (ev.origin !== 'https://api.beatport.com') return;
         // ev.data may be any serializable value; only object payloads carry a code/error.
         if (!ev.data || typeof ev.data !== 'object' || Array.isArray(ev.data)) return;
