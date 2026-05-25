@@ -46,7 +46,7 @@ function decodeJwt(token: string): any {
     const b64 = part.replace(/-/g, '+').replace(/_/g, '/');
     const pad = b64.length % 4 ? '='.repeat(4 - (b64.length % 4)) : '';
     return JSON.parse(atob(b64 + pad));
-  } catch {
+  } catch (_e) {
     return {};
   }
 }
@@ -66,7 +66,7 @@ export class AuthManager implements TokenProvider {
     try {
       const raw = this.storage.getItem(STORAGE_KEY);
       this.token = raw ? (JSON.parse(raw) as StoredToken) : null;
-    } catch {
+    } catch (_e) {
       this.token = null;
     }
   }
@@ -193,7 +193,7 @@ export class AuthManager implements TokenProvider {
         clearInterval(timer);
         try {
           popup.close();
-        } catch {
+        } catch (_e) {
           /* ignore */
         }
       };
