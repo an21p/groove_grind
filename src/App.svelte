@@ -83,6 +83,7 @@
 	let artistTracksByLabel = null;
 	let artistView = 'top10';
 	let bioExpanded = false;
+	let collapsedGroups = {}; // label.id -> true when collapsed (Full Catalog)
 
 	// Streaming state for /artist/.../labels (NDJSON)
 	let streamingCatalog = false;
@@ -149,6 +150,7 @@
 		artistTracksByLabel = null;
 		artistView = 'top10';
 		bioExpanded = false;
+		collapsedGroups = {};
 		streamingCatalog = true;
 		tracksLoaded = 0;
 		progressiveCatalog = [];
@@ -218,6 +220,11 @@
 	}
 
 	function setView(v) { artistView = v; }
+
+	function toggleGroup(id) {
+		collapsedGroups[id] = !collapsedGroups[id];
+		collapsedGroups = collapsedGroups; // trigger Svelte reactivity
+	}
 
 	// Audio handling
 	function togglePlay(track) {
@@ -702,7 +709,12 @@
 					{/if}
 					{#each catalogForDisplay as group, gi (group.label.id + '-' + gi)}
 						<div class="cat-group">
-							<header class="cat-group-head">
+							<button
+								type="button"
+								class="cat-group-head"
+								aria-expanded={!collapsedGroups[group.label.id]}
+								on:click={() => toggleGroup(group.label.id)}
+							>
 								<div class="cat-logo">
 									{#if group.label.image}<img src={group.label.image} alt={group.label.name} loading="lazy" />{/if}
 								</div>
@@ -711,7 +723,9 @@
 									<h3 class="cat-label-name"><em>{group.label.name}</em></h3>
 								</div>
 								<div class="cat-count caps mute">{pad2(group.tracks.length)} release{group.tracks.length === 1 ? '' : 's'}</div>
-							</header>
+								<span class="cat-chevron" class:collapsed={collapsedGroups[group.label.id]} aria-hidden="true">▾</span>
+							</button>
+							{#if !collapsedGroups[group.label.id]}
 							<div class="tracks-list dense">
 								{#each group.tracks as t, i (t.slug + i)}
 									<article class="track-row dense" class:playing={currentTrackId === t.id && isPlaying}>
@@ -751,6 +765,7 @@
 									</article>
 								{/each}
 							</div>
+							{/if}
 						</div>
 					{/each}
 				</div>
@@ -1373,13 +1388,28 @@
 	.cat-group { margin-bottom: 3rem; }
 	.cat-group-head {
 		display: grid;
-		grid-template-columns: 72px 1fr auto;
+		grid-template-columns: 72px 1fr auto auto;
 		gap: 1.25rem;
 		align-items: center;
-		padding-bottom: 1rem;
+		padding: 0 0 1rem;
+		border: none;
 		border-bottom: var(--rule-thin);
 		margin-bottom: 0.5rem;
+		width: 100%;
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
 	}
+	.cat-group-head:hover .cat-label-name em { color: var(--oxide); }
+	.cat-chevron {
+		font-size: 14px;
+		color: var(--paper-dim);
+		transition: transform .2s ease, color .2s ease;
+	}
+	.cat-group-head:hover .cat-chevron { color: var(--oxide); }
+	.cat-chevron.collapsed { transform: rotate(-90deg); }
 	.cat-logo {
 		width: 72px; height: 72px;
 		background: var(--ink-3);
