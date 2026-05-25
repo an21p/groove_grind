@@ -2,6 +2,32 @@
 	import { onMount } from 'svelte';
 	import { tweened } from 'svelte/motion';
 	import { cubicOut } from 'svelte/easing';
+	import { client, session, loginPopup, setManualToken, logout, refreshSession, manualTokenSnippet } from './stores/session';
+	import { streamArtist } from './beatport/catalog';
+
+	let connected = false;
+	const unsubSession = session.subscribe((s) => (connected = s.connected));
+
+	// Login-gate UI state
+	let showManualSetup = false;
+	let manualTokenInput = '';
+	let loginError = null;
+
+	async function connect() {
+		loginError = null;
+		try {
+			await loginPopup();
+		} catch (e) {
+			loginError = (e && e.userMessage) || 'Could not connect. Try the manual setup below.';
+			showManualSetup = true;
+		}
+	}
+
+	function submitManualToken() {
+		if (!manualTokenInput.trim()) return;
+		setManualToken(manualTokenInput.trim());
+		manualTokenInput = '';
+	}
 
 	const tweenedTracks = tweened(0, { duration: 500, easing: cubicOut });
 	const tweenedLabels = tweened(0, { duration: 500, easing: cubicOut });
@@ -44,7 +70,7 @@
 		};
 		tick();
 		const id = setInterval(tick, 1000);
-		return () => clearInterval(id);
+		return () => { clearInterval(id); unsubSession(); };
 	});
 
 	function handleKeydown(e) {
@@ -60,23 +86,18 @@
 		labels = null;
 		searchError = null;
 		streamError = null;
-		fetch(`./search/${encodeURIComponent(searchTerm.trim())}`)
-			.then(async r => {
-				const d = await r.json().catch(() => ({}));
-				if (!r.ok || (d && d.error)) {
-					searchError = (d && d.error && d.error.message)
-						|| 'Beatport is temporarily unavailable. Please try again in a moment.';
-					loading = false;
-					return;
-				}
-				artists = d.artists || [];
-				labels = d.labels || [];
+		(async () => {
+			try {
+				const { artists: a, labels: l } = await client.search(searchTerm.trim());
+				artists = a;
+				labels = l;
 				loading = false;
-			})
-			.catch(() => {
-				searchError = 'Beatport is temporarily unavailable. Please try again in a moment.';
+			} catch (e) {
+				searchError = (e && e.userMessage) || 'Beatport is temporarily unavailable. Please try again in a moment.';
+				if (e && e.code === 'auth') refreshSession();
 				loading = false;
-			});
+			}
+		})();
 	}
 
 	async function openArtist(slug, id) {
@@ -97,33 +118,11 @@
 		searchError = null;
 
 		try {
-			const res = await fetch(`./artist/${slug}/${id}/labels`, { signal: controller.signal });
-			if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
-
-			const reader = res.body.getReader();
-			const decoder = new TextDecoder();
-			let buf = '';
-			while (true) {
-				const { value, done } = await reader.read();
-				if (done) break;
-				buf += decoder.decode(value, { stream: true });
-				let i;
-				while ((i = buf.indexOf('\n')) !== -1) {
-					const line = buf.slice(0, i).trim();
-					buf = buf.slice(i + 1);
-					if (line) {
-						try { handleStreamEvent(JSON.parse(line)); }
-						catch (err) { console.warn('stream parse error', err, line); }
-					}
-				}
-			}
-			// flush trailing partial (shouldn't happen with NDJSON, but be safe)
-			if (buf.trim()) {
-				try { handleStreamEvent(JSON.parse(buf.trim())); } catch (_) {}
-			}
+			await streamArtist(client, id, handleStreamEvent, controller.signal);
 		} catch (err) {
-			if (err.name !== 'AbortError') {
-				streamError = err.message || String(err);
+			if (err && err.name !== 'AbortError') {
+				streamError = (err && err.userMessage) || (err && err.message) || String(err);
+				if (err && err.code === 'auth') refreshSession();
 			}
 		} finally {
 			if (activeStreamController === controller) activeStreamController = null;
@@ -290,7 +289,46 @@
 	</section>
 
 	<!-- Search hero / prompt -->
-	{#if !artist}
+	{#if !artist && !connected}
+		<section class="hero gate">
+			<div class="prompt-line">
+				<span class="caps prompt-num">Nº 00</span>
+				<span class="prompt-dot"></span>
+				<span class="caps prompt-label">Connect</span>
+			</div>
+			<h2 class="section-title" style="margin-top:1rem;">Connect your <em>Beatport</em> account to dig</h2>
+			<p class="dossier-bio" style="margin-top:1rem;">
+				Groove &amp; Grind reads the Beatport catalog from your browser, on your connection — nothing runs on a server.
+			</p>
+			<div class="prompt-hint" style="margin-top:1.5rem;">
+				<button class="prompt-go ready" on:click={connect}><span class="caps">Connect Beatport</span><span class="go-arrow">→</span></button>
+				<button class="suggest" on:click={() => (showManualSetup = !showManualSetup)}>Can't use the popup? Manual setup</button>
+			</div>
+			{#if loginError}
+				<div class="stream-error caps" style="margin-top:1.25rem;" role="alert">
+					<span class="stream-error-label">Connection problem</span>
+					<span class="stream-error-msg">{loginError}</span>
+				</div>
+			{/if}
+			{#if showManualSetup}
+				<div class="manual-setup">
+					<div class="caps mute">Manual token setup</div>
+					<ol class="manual-steps">
+						<li>Sign in to beatport.com in this browser.</li>
+						<li>Open the devtools console and run this command:</li>
+					</ol>
+					<pre class="manual-snippet">{manualTokenSnippet}</pre>
+					<p class="caps mute">Paste the resulting token below. Note: the token expires (about 10 hours) — when it does, you'll be asked to run the command again.</p>
+					<div class="prompt-field" style="margin-top:1rem;">
+						<input class="prompt-input" bind:value={manualTokenInput} placeholder="paste your Beatport token" autocomplete="off" spellcheck="false" />
+						<button class="prompt-go ready" on:click={submitManualToken}><span class="caps">Save</span><span class="go-arrow">→</span></button>
+					</div>
+				</div>
+			{/if}
+		</section>
+	{/if}
+
+	{#if !artist && connected}
 		<section class="hero">
 			<div class="prompt-line">
 				<span class="caps prompt-num">Nº 01</span>
@@ -632,6 +670,9 @@
 			<div class="caps mute">Groove &amp; Grind · Edition MMXXVI</div>
 			<div class="caps mute">Typeset in Fraunces &amp; JetBrains Mono</div>
 			<div class="caps mute">Printed on the open web</div>
+			{#if connected}
+				<button class="caps mute disconnect" on:click={logout}>Disconnect Beatport</button>
+			{/if}
 		</div>
 	</footer>
 
@@ -1318,6 +1359,21 @@
 		letter-spacing: 0.1em;
 		text-transform: none;
 	}
+
+	.manual-setup { margin-top: 2rem; padding-top: 1.5rem; border-top: var(--rule-thin); }
+	.manual-steps { margin: 1rem 0; padding-left: 1.25rem; color: var(--paper-dim); font-size: 13px; line-height: 1.6; }
+	.manual-snippet {
+		font-family: var(--mono);
+		font-size: 11px;
+		color: var(--paper);
+		background: var(--ink-2);
+		border: 1px solid var(--rule);
+		padding: 12px;
+		overflow-x: auto;
+		white-space: pre-wrap;
+	}
+	.disconnect { background: none; border: none; cursor: pointer; }
+	.disconnect:hover { color: var(--oxide); }
 
 	/* Footer */
 	.foot {
