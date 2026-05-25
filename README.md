@@ -1,191 +1,89 @@
 # Groove Grind
 
-Groove Grind is a Beatport browser that uses the official Beatport v4 API to search artists and labels and surface an artist's top 10, their labels ordered by first release date, and their full track history grouped by label. Flask serves a compiled Svelte SPA from the same process and proxies the Beatport API endpoints.
+Groove Grind is a Beatport browser that uses the official Beatport v4 API to
+search artists and labels and surface an artist's top 10, their labels ordered
+by first release date, and their full track history grouped by label.
+
+It is a **pure static Svelte single-page app** — there is no server. Each visitor
+signs in with their own Beatport account in the browser, and every API call is
+made directly from that browser to `api.beatport.com`. This is deliberate:
+Beatport's API blocks datacenter IPs (the reason an earlier Flask-on-Azure build
+returned HTTP 403), but a browser on a normal residential connection is not
+blocked. Moving the calls client-side removes both the server and the block.
+
+## How auth works
+
+The app talks OAuth directly to `api.beatport.com/v4` using the public Beatport
+client id. On first visit you see a **connect gate**:
+
+- **Popup login (preferred):** a popup opens Beatport's own login page; you
+  authenticate on beatport.com (we never see your password) and the app receives
+  an access token.
+- **Manual token (fallback):** if the popup flow is unavailable, the setup
+  section gives you a devtools console command to copy your token and paste it
+  in. Manual tokens expire (~10h) with no auto-refresh, so you'll be asked to
+  re-run the command when that happens.
+
+The token lives in `localStorage`. A "Disconnect Beatport" control in the footer
+clears it.
 
 ## Local development
 
-### Backend
-
 ```bash
-uv venv
-uv pip install -r requirements.txt
-source .venv/bin/activate
-python app.py
-```
-
-The dev server runs at http://127.0.0.1:5000. The `.venv` is uv-managed, so create it with `uv venv` rather than `python -m venv`. `app.py` calls `load_dotenv()`, so `FLASK_SECRET_KEY` and the `BEATPORT_*` variables are read from a local `.env` file.
-
-### Frontend
-
-```bash
-cd client
 npm install
-npm run autobuild
+npm run autobuild     # rebuilds public/bundle.{js,css} on change
 ```
 
-`npm run autobuild` rebuilds `client/public/bundle.{js,css}` on change. Flask serves `client/public/` directly, so prefer `autobuild` over `npm run dev` (which also spins up a redundant `sirv` static server).
+Then serve the static `public/` directory, e.g.:
+
+```bash
+npm start             # sirv public --single  (http://localhost:5000)
+```
+
+`npm run build` produces the minified production bundle. There is no backend
+process and no `.env` — the only secret involved is the OAuth token, which lives
+in the user's browser.
 
 ## Running tests
 
 ```bash
-# Fast unit tests (no network) — also run by CI before deploy
-.venv/bin/python -m unittest discover -v
-
-# Live end-to-end tests against the real Beatport API (requires credentials in .env)
-RUN_LIVE_TESTS=1 .venv/bin/python -m unittest test -v
+npm test              # Vitest, no network required
+npx tsc --noEmit      # type check
 ```
 
-The fast suite covers error taxonomy, models, auth, client, and the app routes — no network required. The live suite (`test.py`) is skipped unless `RUN_LIVE_TESTS=1` and `BEATPORT_USERNAME`/`BEATPORT_PASSWORD` are set.
+The suite covers the browser-side Beatport package: error taxonomy
+(`errors.ts`), model mapping (`models.ts`), the API client incl. 401-retry and
+pagination (`client.ts`), the auth token store / refresh / popup handshake /
+manual token (`auth.ts`), and the artist-stream orchestration (`catalog.ts`).
 
-## Azure deployment
+## Architecture
 
-### Prerequisites
-
-- An Azure subscription.
-- The `az` CLI installed and logged in (`az login`).
-- The repository pushed to GitHub.
-
-### One-time Azure provisioning
-
-Set the variables once per shell, then run the commands below in order.
-
-```bash
-RESOURCE_GROUP="groove-grind"
-APP_NAME="groove-grind"
-PLAN_NAME="flask-plan"
-LOCATION="westeurope"
+```
+src/
+  main.js              Svelte entry
+  App.svelte           UI: connect gate + search + artist dossier
+  beatport/
+    errors.ts          typed errors (unavailable / rate-limited / auth)
+    models.ts          Artist / Label / Track mappers
+    client.ts          BeatportClient: search, getArtist, getArtistTop, iterArtistTracks
+    auth.ts            AuthManager: token store, refresh, popup OAuth, manual token
+    catalog.ts         streamArtist(): paginate -> group by label -> sort by date
+  stores/
+    session.ts         singletons (auth, client) + connect/disconnect store
 ```
 
-Create the resource group:
+`catalog.streamArtist` emits progressive `{type:'artist'|'tracks'|'done'|'error'}`
+events that `App.svelte` renders incrementally — the same event protocol the app
+used when the server streamed NDJSON.
 
-```bash
-az group create --name $RESOURCE_GROUP --location $LOCATION
-```
+## Deployment — Azure Static Web Apps
 
-Create a Linux App Service plan on the B1 tier:
+Pushes to `main` build and deploy via
+`.github/workflows/azure-static-web-apps.yml` (the `Azure/static-web-apps-deploy`
+action, `app_location: /`, `output_location: public`, build via `npm run build`).
+`staticwebapp.config.json` rewrites unknown paths to `/index.html` for SPA
+routing.
 
-```bash
-az appservice plan create \
-  --name $PLAN_NAME \
-  --resource-group $RESOURCE_GROUP \
-  --sku B1 \
-  --is-linux
-```
-
-Create the web app on Python 3.11:
-
-```bash
-az webapp create \
-  --resource-group $RESOURCE_GROUP \
-  --plan $PLAN_NAME \
-  --name $APP_NAME \
-  --runtime "PYTHON|3.11"
-```
-
-Set the gunicorn startup command:
-
-```bash
-az webapp config set \
-  --resource-group $RESOURCE_GROUP \
-  --name $APP_NAME \
-  --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
-```
-
-Configure app settings. `SCM_DO_BUILD_DURING_DEPLOYMENT=true` tells Azure to run `pip install` on the uploaded package. `app.py` reads `app.secret_key` from `os.environ['FLASK_SECRET_KEY']`, so this setting is required — generate a random value (`python -c 'import secrets; print(secrets.token_hex(32))'`) and set it now:
-
-```bash
-az webapp config appsettings set \
-  --resource-group $RESOURCE_GROUP \
-  --name $APP_NAME \
-  --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true FLASK_SECRET_KEY=<paste-generated-value>
-```
-
-Note: `app.py` reads `app.secret_key` from `os.environ['FLASK_SECRET_KEY']`, so this app setting takes effect on the next deploy. If it is unset, the app fails to import on startup.
-
-Download the publish profile XML. This is the credential the GitHub Actions workflow uses to deploy:
-
-```bash
-az webapp deployment list-publishing-profiles \
-  --resource-group $RESOURCE_GROUP \
-  --name $APP_NAME \
-  --xml > publish-profile.xml
-```
-
-Open `publish-profile.xml` and copy its full contents — it goes into a GitHub secret in the next step. Delete the local file afterwards.
-
-### GitHub Actions wiring
-
-`.github/workflows/azure-webapps-python.yml` runs on every push to `main`. It builds the Svelte bundle, installs Python dependencies, and deploys via `azure/webapps-deploy@v3`. It requires two repository secrets (Settings -> Secrets and variables -> Actions):
-
-- `AZURE_WEBAPP_NAME` — the value of `$APP_NAME` (for example `groove-grind`).
-- `AZURE_CREDENTIALS` — the full XML contents of the publish profile downloaded above.
-
-Footgun: the secret is named `AZURE_CREDENTIALS` but the workflow passes it to the `publish-profile` input of `azure/webapps-deploy@v3`, which expects publish-profile XML — not the service-principal JSON that `AZURE_CREDENTIALS` usually implies. Rename this secret to `AZURE_WEBAPP_PUBLISH_PROFILE` in a future PR to match its actual contents.
-
-### Tailing logs
-
-```bash
-az webapp log tail --name $APP_NAME --resource-group $RESOURCE_GROUP
-```
-
-## Production data access (Cloudflare block & proxy)
-
-Beatport's v4 API is fronted by Cloudflare, which blocks requests coming from
-datacenter IP ranges — including Azure App Service's outbound IPs. From the
-deployed app the login call returns **HTTP 403**, so production cannot fetch
-data and instead shows a clear message in the UI ("We're having trouble
-connecting to Beatport — we're on it.") rather than silent empty results.
-Locally and from residential IPs the API works normally, so this affects only
-the Azure deployment.
-
-The fix is to route Beatport traffic through a **residential proxy**. The app
-already supports this via the `BEATPORT_PROXY` env var — `app.py` maps it onto
-`HTTP(S)_PROXY`, which the curl-based transport (`beatport/curl_transport.py`)
-honors. No code change is needed; just set the app setting.
-
-### Enabling a proxy
-
-```bash
-az webapp config appsettings set \
-  --resource-group groove-grind --name groove-grind \
-  --settings BEATPORT_PROXY='http://USER:PASS@HOST:PORT'
-```
-
-- Accepts `http://`, `https://`, or `socks5://` URLs, with an optional
-  `USER:PASS@`.
-- Changing an app setting restarts the app. Then verify:
-  ```bash
-  curl -s https://groove-grind.azurewebsites.net/search/darude | head -c 200
-  ```
-  A working proxy returns JSON containing artists (e.g. Darude). A `502` with
-  `{"error":{"code":"auth",...}}` means the proxy isn't routing (still blocked).
-- To turn it off again:
-  ```bash
-  az webapp config appsettings delete \
-    --resource-group groove-grind --name groove-grind --setting-names BEATPORT_PROXY
-  ```
-
-### Choosing a proxy
-
-It **must be a residential or mobile proxy** — datacenter proxies are blocked
-just like Azure's own IPs. A rotating residential endpoint (a new exit IP per
-request) is ideal. This app only moves small JSON payloads, so bandwidth needs
-are modest (typically well under ~1 GB/month).
-
-Providers (paid, usually billed per-GB): **Bright Data, Oxylabs, Decodo
-(formerly Smartproxy), IPRoyal, NetNut, SOAX**. Most give you a single
-`host:port` endpoint with credentials that rotates the exit IP automatically —
-use that as the `BEATPORT_PROXY` value.
-
-### Local development
-
-No proxy is needed locally — residential IPs aren't blocked. Leave
-`BEATPORT_PROXY` unset for a direct connection.
-
-## Known issues / TODO
-
-- **Beatport API blocked from Azure (Cloudflare).** The datacenter egress IP is
-  403'd on login, so production can't fetch data until a residential
-  `BEATPORT_PROXY` is configured (see [Production data access](#production-data-access-cloudflare-block--proxy)).
-  Until then the app degrades gracefully with a connection-error message.
-- The GitHub secret `AZURE_CREDENTIALS` actually holds publish-profile XML, not service-principal credentials. Rename to `AZURE_WEBAPP_PUBLISH_PROFILE` and update the workflow to match.
+One-time setup: create an Azure Static Web App resource, add its deployment
+token as the `AZURE_STATIC_WEB_APPS_API_TOKEN` repository secret, and point your
+custom domain at it. No app settings or server secrets are required.

@@ -4,77 +4,94 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-Groove Grind — a Beatport browser that uses the official Beatport v4 API to search artists/labels and surface an artist's top 10, their labels by first-release date, and their full track history grouped by label. Flask serves a compiled Svelte SPA from the same process and proxies the Beatport API endpoints.
+Groove Grind — a Beatport browser that uses the official Beatport v4 API to
+search artists/labels and surface an artist's top 10, their labels by first
+release date, and their full track history grouped by label. It is a **pure
+static Svelte SPA with no server**: each user signs in with their own Beatport
+account in the browser (popup OAuth, with a manual-token fallback), and every API
+call goes directly from that browser to `api.beatport.com/v4`. Running the calls
+client-side, on residential IPs, sidesteps the datacenter-IP 403 that blocked the
+previous Flask-on-Azure build.
 
 ## Commands
 
-### Backend (Flask + official API)
-
 ```bash
-# One-time setup (the .venv is uv-managed — use uv, not python -m venv)
-uv venv
-uv pip install -r requirements.txt
-source .venv/bin/activate
-
-# Run the dev server (http://127.0.0.1:5000). app.py calls load_dotenv(),
-# so FLASK_SECRET_KEY (and the BEATPORT_* vars) are read from .env automatically.
-python app.py
-
-# Run the official-API client directly (live; needs BEATPORT_* in .env)
-RUN_LIVE_TESTS=1 .venv/bin/python -m unittest test -v
-
-# Fast tests (no network) — run by CI before deploy
-.venv/bin/python -m unittest discover -v
-```
-
-### Frontend (Svelte + Rollup)
-
-```bash
-cd client
 npm install
-npm run autobuild    # rebuild bundle.js on change (dev)
-npm run build        # production build (terser minified)
+npm run build        # production bundle (terser minified) -> public/bundle.{js,css}
+npm run autobuild    # rebuild on change (dev)
+npm start            # serve public/ statically (sirv --single)
+npm test             # Vitest (no network)
+npx tsc --noEmit     # type check
 ```
 
-Flask serves `client/public/` — the Svelte build must exist on disk before the app can serve anything. `npm run autobuild` writes `client/public/bundle.{js,css}`; Flask picks them up without restart.
-
-### Production
-
-Gunicorn entrypoint is `app:app` (see the GitHub Actions workflow and README Azure snippet):
-
-```bash
-gunicorn --bind=0.0.0.0 --timeout 600 app:app
-```
-
-CI (`.github/workflows/azure-webapps-python.yml`) builds the Svelte bundle, installs Python deps, and deploys to Azure Web Apps on push to `main`.
+Rollup compiles `src/main.js` (+ the imported `.ts` modules, via
+`@rollup/plugin-typescript`) into `public/bundle.js`; Svelte component CSS is
+extracted to `public/bundle.css`. Test files (`*.test.ts`) are excluded from the
+browser bundle and run only under Vitest.
 
 ## Architecture
 
-### The Beatport official API (`beatport/` package)
+### The browser-side Beatport package (`src/beatport/`)
 
-Data comes from `https://api.beatport.com/v4`. `beatport.auth.TokenManager` runs the
-3-step `authorization_code` OAuth flow (login → authorize → token) with the public swagger
-client_id, caches one access token per process, and refreshes it before its 10h expiry.
-`beatport.client.BeatportClient` exposes `search`, `get_artist`, `get_artist_top`, and
-`iter_artist_tracks`, mapping responses to `beatport.models` and raising the typed errors in
-`beatport.errors` (which `app.py` turns into HTTP status + `{error:{code,message}}`).
+A TypeScript port of what used to be the Flask `beatport/` package + the
+`get_artist` route:
 
-### Flask ↔ Svelte wiring
+- `errors.ts` — typed errors (`BeatportError`, `BeatportUnavailable`,
+  `BeatportRateLimited`, `BeatportAuthError`) carrying `code` + `userMessage`.
+- `models.ts` — `artistFromApi` / `labelFromApi` / `trackFromApi` flatten API
+  responses to plain objects (image `{uri}` → string; `sample_url` → `sample`;
+  `new_release_date` → `release_date`; label from `release.label` or a
+  `{id:0,name:""}` placeholder).
+- `client.ts` — `BeatportClient` (`search`, `getArtist`, `getArtistTop`,
+  `iterArtistTracks`); private `get()` attaches `Authorization: Bearer`, retries
+  once after a 401 (invalidate → refresh), maps 429→rate-limited, else
+  unavailable. Depends on a `TokenProvider` (`getToken`/`invalidate`).
+- `auth.ts` — `AuthManager implements TokenProvider`. Token store in
+  `localStorage` (`groovegrind.token`), refresh via `grant_type=refresh_token`
+  with a 60s expiry buffer, popup OAuth `login()` (opens Beatport's authorize
+  page, receives the `code` via `postMessage` from the `post-message/` relay,
+  exchanges it for a token), and `setTokenManually()` for the fallback (no
+  refresh token → a 401 forces re-setup). `MANUAL_TOKEN_SNIPPET` is the console
+  command shown in the setup UI. The public swagger `client_id` is hardcoded.
+- `catalog.ts` — `streamArtist(client, id, onEvent, signal)` replaces the server
+  NDJSON generator: emits `{type:'artist',artist,top10}`, then
+  `{type:'tracks',tracks,cumulative}` per page, then
+  `{type:'done',labelsByDate,all}` (group by label name, sort by release_date),
+  or `{type:'error',code,message}`. Respects an `AbortSignal`.
 
-- `/` and `/<path:path>` both `send_from_directory('client/public', ...)` — a catch-all static handler. New API routes must be registered **before** the catch-all would swallow them (Flask resolves routes in registration order, and specific routes win over the variable catch-all, but mind the pattern if adding nested API paths).
-- The Svelte app uses relative URLs (`./search/${term}`, `./artist/${slug}/${id}/labels`) so it works under any base path.
-- API responses serialize via each model's `to_dict()` method — use `to_dict()` explicitly when adding new routes.
+### Session + UI
 
-### Data flow for "show me an artist"
+- `src/stores/session.ts` — singleton `auth` (AuthManager) and `client`
+  (BeatportClient), a `session` writable store `{connected}`, and
+  `loginPopup` / `setManualToken` / `logout` / `refreshSession`.
+- `App.svelte` — shows the **connect gate** when `!connected`, otherwise the
+  search UI. `search()` calls `client.search()`; `openArtist()` calls
+  `streamArtist(...)` feeding the unchanged `handleStreamEvent` dispatcher. Auth
+  failures (including mid-stream, surfaced as error events) call
+  `refreshSession()` so the gate reappears.
 
-1. User types a name → `search()` in `App.svelte` hits `/search/<term>`.
-2. Flask `search` → `BeatportClient.search()` → returns `[Artist], [Label]` (or raises a typed `BeatportError` → HTTP status + `{error:{code,message}}`).
-3. User clicks an artist → hits `/artist/<slug>/<id>/labels` (ndjson stream).
-4. `app.py` calls `beatport.get_artist()` (artist detail), `beatport.get_artist_top()` (top 10), then `beatport.iter_artist_tracks()` (paginated full catalog), groups tracks by label name with `toolz.groupby`, sorts each group by `release_date`, and streams `{type:artist}`, `{type:tracks}`, `{type:done}` (or `{type:error}`) events.
-5. Svelte renders four collapsible `<details>` panels; `toggleDetails()` enforces "only one open at a time" by mutating sibling `isOpen*` flags.
+## Auth flow notes
+
+- Popup origin guard and `MANUAL_TOKEN_SNIPPET` are validated/finalized by the
+  spike harness in `spike/auth-popup.html` (see
+  `docs/superpowers/spike-auth-notes.md`). If Beatport's relay posts from a
+  different origin than `https://api.beatport.com`, update the guard in
+  `auth.ts`'s `runPopup`.
+- CORS is open on the API (`access-control-allow-origin: *` with `authorization`
+  allowed), so direct browser calls work from any origin.
+
+## Deployment
+
+Azure Static Web Apps via `.github/workflows/azure-static-web-apps.yml`
+(`app_location: /`, `output_location: public`, build `npm run build`).
+`staticwebapp.config.json` provides the SPA navigation fallback. The only
+required secret is `AZURE_STATIC_WEB_APPS_API_TOKEN`; there are no server-side
+app settings or Beatport credentials.
 
 ## Key conventions
 
-- `app.secret_key` is read from `os.environ['FLASK_SECRET_KEY']` (`app.py`), and `load_dotenv()` loads it from `.env` for local dev. The app will fail to import if the var is set neither in `.env` nor the environment (e.g. the Azure app setting in prod).
-- README's Svelte install snippet says `npm run autobuild`, not `npm run dev`. `dev` runs both autobuild and a `sirv` static server, but Flask is the intended server — prefer `autobuild` alone.
-- Fast tests (`test_fast.py`, `test_errors.py`, `test_models.py`, `test_auth.py`, `test_client.py`, `test_app.py`) require no network and are run by CI. Live tests (`test.py`) are skipped unless `RUN_LIVE_TESTS=1` and `BEATPORT_*` credentials are set.
+- No server, no `.env`, no `FLASK_SECRET_KEY` / `BEATPORT_*` — the only credential
+  is the per-user OAuth token in the browser.
+- Tests are colocated (`src/beatport/*.test.ts`) and require no network.
+- `App.svelte` is plain JS (not `lang="ts"`); the `.ts` modules under `src/` are
+  what `tsc --noEmit` type-checks.
