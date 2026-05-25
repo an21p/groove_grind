@@ -779,6 +779,7 @@
 			<div class="caps mute">Groove &amp; Grind · Edition MMXXVI</div>
 			<div class="caps mute">Typeset in Fraunces &amp; JetBrains Mono</div>
 			<div class="caps mute">Printed on the open web</div>
+			<a class="caps mute" href="https://an21p.github.io/" target="_blank" rel="noopener noreferrer">Antonis Pishias ↗</a>
 			{#if connected}
 				<button class="caps mute disconnect" on:click={logout}>Disconnect Beatport</button>
 			{/if}
