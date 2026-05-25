@@ -124,7 +124,9 @@ export class AuthManager implements TokenProvider {
       const onMessage = (ev: MessageEvent) => {
         // SPIKE-CONFIRMED: validate the relay's exact origin here.
         if (ev.origin !== 'https://api.beatport.com') return;
-        const data = (ev.data || {}) as { code?: string; error?: string };
+        // ev.data may be any serializable value; only object payloads carry a code/error.
+        if (!ev.data || typeof ev.data !== 'object' || Array.isArray(ev.data)) return;
+        const data = ev.data as { code?: string; error?: string };
         if (data.code) {
           cleanup();
           resolve(data.code);

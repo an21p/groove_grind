@@ -97,4 +97,49 @@ describe('AuthManager.login (popup)', () => {
     expect(a.isAuthenticated()).toBe(true);
     expect(await a.getToken()).toBe('X');
   });
+
+  it('rejects with an auth error when the popup is blocked', async () => {
+    const a = new AuthManager('cid', memStorage(), () => 0);
+    vi.stubGlobal('open', vi.fn(() => null));
+    await expect(a.login()).rejects.toBeInstanceOf(BeatportAuthError);
+  });
+
+  it('rejects when the relay reports an error', async () => {
+    const a = new AuthManager('cid', memStorage(), () => 0);
+    const popup = { closed: false, close: vi.fn() };
+    vi.stubGlobal('open', vi.fn(() => popup));
+    const p = a.login();
+    window.dispatchEvent(
+      new MessageEvent('message', { origin: 'https://api.beatport.com', data: { error: 'denied' } }),
+    );
+    await expect(p).rejects.toBeInstanceOf(BeatportAuthError);
+  });
+
+  it('ignores messages from an untrusted origin and stops listening after success', async () => {
+    const a = new AuthManager('cid', memStorage(), () => 0);
+    const popup = { closed: false, close: vi.fn() };
+    vi.stubGlobal('open', vi.fn(() => popup));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        status: 200,
+        json: async () => ({ access_token: 'X', refresh_token: 'RX', expires_in: 100 }),
+      })),
+    );
+    const p = a.login();
+    // Untrusted origin: must be ignored.
+    window.dispatchEvent(
+      new MessageEvent('message', { origin: 'https://evil.example', data: { code: 'BAD' } }),
+    );
+    window.dispatchEvent(
+      new MessageEvent('message', { origin: 'https://api.beatport.com', data: { code: 'GOOD' } }),
+    );
+    await p;
+    expect(await a.getToken()).toBe('X');
+    // Listener removed after success: a late message must not change state.
+    window.dispatchEvent(
+      new MessageEvent('message', { origin: 'https://api.beatport.com', data: { error: 'late' } }),
+    );
+    expect(a.isAuthenticated()).toBe(true);
+  });
 });
