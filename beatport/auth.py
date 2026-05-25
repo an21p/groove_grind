@@ -15,7 +15,11 @@ TOKEN_URL = f"{API_BASE}/auth/o/token/"
 REDIRECT_URI = f"{API_BASE}/auth/o/post-message/"
 EXPIRY_BUFFER_SECONDS = 60
 HTTP_TIMEOUT = 30
-HEADERS = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
+# No User-Agent override: a spoofed browser UA ("Mozilla/5.0") on curl's TLS
+# fingerprint is exactly what Cloudflare flags as a bot from datacenter IPs
+# (bare curl, with its honest curl/x.y UA, passed our Azure probe). Let curl
+# send its default UA.
+HEADERS = {"Accept": "application/json"}
 
 
 class TokenManager:
