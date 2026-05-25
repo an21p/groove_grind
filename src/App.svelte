@@ -303,9 +303,6 @@
 </script>
 
 <div class="frame">
-	{#if connected}
-		<button class="clear-token caps" on:click={clearToken} title="Remove the stored Beatport token from this browser">Clear token</button>
-	{/if}
 	<!-- Top band -->
 	<header class="band">
 		<div class="band-left">
@@ -410,6 +407,9 @@
 
 	{#if !artist && connected}
 		<section class="hero">
+			<div class="clear-token-row">
+				<button class="clear-token caps" on:click={clearToken} title="Remove the stored Beatport token from this browser">Clear token</button>
+			</div>
 			<div class="prompt-line">
 				<span class="caps prompt-num">Nº 01</span>
 				<span class="prompt-dot"></span>
@@ -1469,12 +1469,13 @@
 		overflow-x: auto;
 		white-space: pre-wrap;
 	}
+	.clear-token-row {
+		display: flex;
+		justify-content: flex-end;
+		margin-bottom: 1rem;
+	}
 	.clear-token {
-		position: fixed;
-		top: 12px;
-		right: 16px;
-		z-index: 50;
-		background: var(--ink);
+		background: none;
 		border: 1px solid var(--rule);
 		color: var(--paper-dim);
 		padding: 6px 12px;
