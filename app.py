@@ -56,34 +56,6 @@ def search(term):
     }
 
 
-@app.route("/debug/curlprobe")
-def debug_curlprobe():
-    # TEMPORARY: probe whether the app container can reach Beatport via the OS
-    # curl binary / pycurl (the only transport proven to pass Cloudflare from
-    # Azure). Remove once the transport decision is made.
-    import shutil
-    import subprocess
-    out = {}
-    out["curl_path"] = shutil.which("curl") or "MISSING"
-    if out["curl_path"] != "MISSING":
-        try:
-            p = subprocess.run(
-                ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
-                 "-X", "POST", "https://api.beatport.com/v4/auth/login/"],
-                capture_output=True, text=True, timeout=25)
-            out["curl_login_status"] = p.stdout.strip() or ("stderr:" + p.stderr[:100])
-            v = subprocess.run(["curl", "--version"], capture_output=True, text=True, timeout=10)
-            out["curl_version"] = (v.stdout.splitlines() or ["?"])[0]
-        except Exception as e:
-            out["curl_err"] = f"{type(e).__name__}: {str(e)[:100]}"
-    try:
-        import pycurl  # noqa: F401
-        out["pycurl"] = "importable"
-    except Exception as e:
-        out["pycurl"] = f"no ({type(e).__name__})"
-    return out
-
-
 @app.route("/artist/<slug>/<id>/labels")
 def get_artist(slug, id):
     def gen():
