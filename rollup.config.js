@@ -26,7 +26,7 @@ export default {
 			}
 		}),
 
-		typescript({ sourceMap: !production, inlineSources: !production, exclude: ['**/*.test.ts'] }),
+		typescript({ sourceMap: true, inlineSources: !production, exclude: ['**/*.test.ts'] }),
 
 		// If you have external dependencies installed from
 		// npm, you'll most likely need these plugins. In
