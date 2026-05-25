@@ -27,22 +27,47 @@ client id. On first visit you see a **connect gate**:
 The token lives in `localStorage`. A "Disconnect Beatport" control in the footer
 clears it.
 
-## Local development
+## Run it yourself (host locally)
+
+Don't want to trust a hosted copy with your Beatport token? Run your own. There
+is no server and no secrets — it's a static site that talks to Beatport straight
+from your browser.
+
+**Prerequisite:** [Node.js](https://nodejs.org) 18 or newer (`node --version`).
 
 ```bash
+# 1. Get the code
+git clone https://github.com/an21p/groove_grind.git
+cd groove_grind
+
+# 2. Install dependencies
 npm install
-npm run autobuild     # rebuilds public/bundle.{js,css} on change
+
+# 3. Build the static site (writes public/bundle.{js,css})
+npm run build
+
+# 4. Serve it locally
+npm start             # -> http://localhost:5000
 ```
 
-Then serve the static `public/` directory, e.g.:
+Open <http://localhost:5000> and connect with a token as described above. To
+stop the server, press `Ctrl+C`. That's the whole thing — everything runs on
+your machine, and your Beatport token never leaves your browser.
+
+Want to deploy your own copy instead of running it locally? `public/` after
+`npm run build` is a plain static bundle — drop it on any static host (GitHub
+Pages, Netlify, Cloudflare Pages, Azure Static Web Apps, etc.). See
+[Deployment](#deployment--azure-static-web-apps).
+
+### Development
 
 ```bash
-npm start             # sirv public --single  (http://localhost:5000)
+npm run autobuild     # rebuild public/bundle.{js,css} on change while editing
 ```
 
 `npm run build` produces the minified production bundle. There is no backend
-process and no `.env` — the only secret involved is the OAuth token, which lives
-in the user's browser.
+process and no `.env` — the only credential involved is the Beatport token,
+which lives in the user's browser.
 
 ## Running tests
 

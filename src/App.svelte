@@ -352,6 +352,11 @@
 						fetched locally, here in your browser. Your token is stored only in this browser's
 						<code>localStorage</code>, which other websites can't read.
 					</p>
+					<p>
+						Don't want to trust a hosted site with your token? Groove &amp; Grind is open source and fully
+						static — clone it and run it on your own machine (the README has the steps):
+						<a class="bp-link" href="https://github.com/an21p/groove_grind" target="_blank" rel="noopener">github.com/an21p/groove_grind</a>.
+					</p>
 				</div>
 				<ol class="manual-steps">
 					<li>Sign in to <a class="bp-link" href="https://www.beatport.com" target="_blank" rel="noopener">beatport.com</a> in this browser.</li>
