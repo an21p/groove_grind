@@ -128,6 +128,64 @@ Footgun: the secret is named `AZURE_CREDENTIALS` but the workflow passes it to t
 az webapp log tail --name $APP_NAME --resource-group $RESOURCE_GROUP
 ```
 
+## Production data access (Cloudflare block & proxy)
+
+Beatport's v4 API is fronted by Cloudflare, which blocks requests coming from
+datacenter IP ranges — including Azure App Service's outbound IPs. From the
+deployed app the login call returns **HTTP 403**, so production cannot fetch
+data and instead shows a clear message in the UI ("We're having trouble
+connecting to Beatport — we're on it.") rather than silent empty results.
+Locally and from residential IPs the API works normally, so this affects only
+the Azure deployment.
+
+The fix is to route Beatport traffic through a **residential proxy**. The app
+already supports this via the `BEATPORT_PROXY` env var — `app.py` maps it onto
+`HTTP(S)_PROXY`, which the curl-based transport (`beatport/curl_transport.py`)
+honors. No code change is needed; just set the app setting.
+
+### Enabling a proxy
+
+```bash
+az webapp config appsettings set \
+  --resource-group groove-grind --name groove-grind \
+  --settings BEATPORT_PROXY='http://USER:PASS@HOST:PORT'
+```
+
+- Accepts `http://`, `https://`, or `socks5://` URLs, with an optional
+  `USER:PASS@`.
+- Changing an app setting restarts the app. Then verify:
+  ```bash
+  curl -s https://groove-grind.azurewebsites.net/search/darude | head -c 200
+  ```
+  A working proxy returns JSON containing artists (e.g. Darude). A `502` with
+  `{"error":{"code":"auth",...}}` means the proxy isn't routing (still blocked).
+- To turn it off again:
+  ```bash
+  az webapp config appsettings delete \
+    --resource-group groove-grind --name groove-grind --setting-names BEATPORT_PROXY
+  ```
+
+### Choosing a proxy
+
+It **must be a residential or mobile proxy** — datacenter proxies are blocked
+just like Azure's own IPs. A rotating residential endpoint (a new exit IP per
+request) is ideal. This app only moves small JSON payloads, so bandwidth needs
+are modest (typically well under ~1 GB/month).
+
+Providers (paid, usually billed per-GB): **Bright Data, Oxylabs, Decodo
+(formerly Smartproxy), IPRoyal, NetNut, SOAX**. Most give you a single
+`host:port` endpoint with credentials that rotates the exit IP automatically —
+use that as the `BEATPORT_PROXY` value.
+
+### Local development
+
+No proxy is needed locally — residential IPs aren't blocked. Leave
+`BEATPORT_PROXY` unset for a direct connection.
+
 ## Known issues / TODO
 
+- **Beatport API blocked from Azure (Cloudflare).** The datacenter egress IP is
+  403'd on login, so production can't fetch data until a residential
+  `BEATPORT_PROXY` is configured (see [Production data access](#production-data-access-cloudflare-block--proxy)).
+  Until then the app degrades gracefully with a connection-error message.
 - The GitHub secret `AZURE_CREDENTIALS` actually holds publish-profile XML, not service-principal credentials. Rename to `AZURE_WEBAPP_PUBLISH_PROFILE` and update the workflow to match.
